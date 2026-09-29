@@ -1,0 +1,121 @@
+---
+date: 2026-09-29
+topic: Evolution du modèle de statuts AIRH (StatutKey) pour supporter des workflows divergents DV/FF
+stack: [PowerApps, PowerFx, SharePoint, AIRH]
+tags: [dev-handoff, code-context]
+status: in-progress
+---
+
+# 1. Intention & Enjeux d'architecture
+
+Le workflow AIRH a historiquement été conçu autour du type de demande DV. L'introduction de DemandeFF révèle une limite : un même statut métier visible peut désormais mener à des parcours différents selon le type de demande.
+
+Objectif retenu : préparer cette divergence sans refonte du moteur de processus.
+
+Principe directeur :
+- conserver l'architecture actuelle basée sur `cmpActionButton`;
+- conserver les statuts métier visibles;
+- introduire une clé technique de statut (`StatutKey`) dissociée du libellé métier (`StatutDetail`);
+- rester strictement isofonctionnel dans un premier temps;
+- permettre plus tard de distinguer des variantes de workflow (`DACValidee_DV`, `DACValidee_FF`).
+
+---
+
+# 2. Décisions & Arbitrages techniques
+
+| Approche | Avantage clé | Inconvénient / Motif de rejet | Statut |
+|----------|--------------|-------------------------------|--------|
+| Ajouter `TypeDemande` dans tous les calculs de `cmpActionButton` | Peu de changements visibles au modèle de données | Complexifie tous les calculs d'éligibilité, visibilité et filtrage | 🔴 Rejeté |
+| Dupliquer immédiatement tous les statuts DV/FF | Très explicite | Refonte importante en fin de projet | 🔴 Rejeté |
+| Ajouter une `StatutKey` technique indépendante du libellé | Compatible, évolutif, faible impact | Migration progressive nécessaire | ⭐ 🟢 Validé |
+| Conserver uniquement `StatutDetail` comme identifiant | Aucun travail immédiat | Bloque les futurs workflows divergents | 🟡 Compromis historique |
+
+### Règle de modélisation retenue
+
+```text
+StatutKey
+    = identité technique du workflow
+
+StatutDetail
+    = libellé métier visible
+```
+
+À court terme :
+
+```text
+StatutKey     = DACValidee
+StatutDetail  = "Demande validée par la DAC"
+```
+
+À terme :
+
+```text
+StatutKey     = DACValidee_DV
+StatutDetail  = "Demande validée par la DAC"
+
+StatutKey     = DACValidee_FF
+StatutDetail  = "Demande validée par la DAC"
+```
+
+---
+
+# 3. Subtilités d'implémentation & Pièges résolus
+
+- Le problème n'est pas le bouton `CreateLot`.
+- Le problème est qu'un même statut visible peut désormais mener à plusieurs parcours.
+- Ne pas modifier `cmpActionButton` tant que la divergence DV/FF n'est pas réellement nécessaire.
+- Ne pas dupliquer prématurément les statuts.
+- Éviter d'introduire partout des conditions `TypeDemande + Statut`.
+- Le workflow principal reste piloté par `cmpActionButton`, pas par `StatutConfigTable.Actions`.
+- `StatutConfigTable.Actions` reste pertinent pour les actions d'écran de détail (`_ActionOnForm`).
+- La future migration devra progressivement remplacer les `LookUp(...StatutDetail...)` servant d'identifiants techniques par `LookUp(...StatutKey...)`.
+- Conserver `StatutDetail` comme libellé métier affiché à l'utilisateur.
+
+---
+
+# 4. Patron de conception / Skeleton
+
+```powerfx
+_StatutDetailKey = {
+    DACValidee: "DACValidee"
+};
+
+_StatutConfigTable = Table(
+    {
+        StatutKey:    _StatutDetailKey.DACValidee;
+        StatutDetail: _StatutDetail.DACValidee;
+        ...
+    }
+);
+
+LookUp(
+    _StatutConfigTable;
+    StatutKey = MyStatutKey
+)
+```
+
+---
+
+# 5. Matière pour la documentation
+
+- Différence entre identifiant technique (`StatutKey`) et libellé métier (`StatutDetail`).
+- Pourquoi le moteur de processus est piloté par `cmpActionButton`.
+- Pourquoi un statut visible n'identifie plus forcément un parcours métier unique.
+- Pourquoi l'évolution a été faite en deux temps (préparation puis divergence réelle).
+- Rôle résiduel de `StatutConfigTable.Actions` pour les écrans de détail.
+
+---
+
+# 6. Next Steps immédiats
+
+- [X] Introduire `_StatutDetailKey`.
+- [X] Ajouter `StatutKey` dans tous les enregistrements de `_StatutConfigTable`.
+- [X] Mettre à jour la documentation des statuts pour distinguer clé technique et libellé métier.
+- [ ] Identifier tous les `LookUp(_StatutConfigTable; StatutDetail = ...)`.
+- [ ] Préparer la stratégie de migration vers `StatutKey` sans changement fonctionnel.
+
+---
+
+# 7. Seed Prompt (Relance pour nouveau fil)
+
+Nous travaillons sur l'évolution du moteur de workflow AIRH afin de permettre à terme des parcours différents pour les demandes DV et FF sans refondre l'architecture existante. La décision retenue est d'introduire une clé technique `StatutKey` indépendante du libellé métier `StatutDetail`. À ce stade nous restons totalement isofonctionnels : aucun statut n'est encore dupliqué, aucun workflow ne change. La prochaine tâche consiste à préparer la migration technique : ajouter `StatutKey` dans `_StatutConfigTable`, identifier les usages de `StatutDetail` servant d'identifiant et définir une stratégie de remplacement progressive vers `StatutKey`.
