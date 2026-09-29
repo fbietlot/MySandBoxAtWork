@@ -1,0 +1,1779 @@
+_AppVersion = "0.11.30";;
+_AppName = "Promotion Encadrement";;
+_AppLink = vvAppConfig.AppUrl;;
+
+/*######### CONFIGURATION : Acteurs (DFA / DAC) ##################################
+Centralise les métadonnées d'affichage des acteurs (icônes, libellés, couleurs) ainsi 
+que les listes de distribution, de permissions d'actions et de catégories de documents 
+autorisées pour garantir la cohérence UI et les contrôles d'accès métiers.
+###############################################################################*/
+_Acteur = {
+    DFA : {
+        Key : "DFA";   Icon : "📝";       Text : "📝 DFA";
+        Color : ColorValue("#C8E6C9");  ColorHex : "#C8E6C9";
+        Actions :   [
+                        _ActionOnList.Filtrer;      _ActionOnList.Archive;
+                        _ActionOnList.NewDemande;   _ActionOnForm.Create;
+                        _ActionOnList.Finaliser;
+                        _ActionOnList.Consulter;    _ActionOnList.Modifier;
+                        _ActionOnForm.Delete;       _ActionOnForm.Save;
+                        _ActionOnList.AddDoc;       _ActionOnForm.AddDoc;
+                        _ActionOnList.SendDAC;      _ActionOnForm.SendDAC;
+                        _ActionOnForm.DirCandNonRet ; _ActionOnForm.DirCandRetenu;
+                        _ActionOnList.DirCandid ;  //_ActionOnList.DirAudition ; _ActionOnList.DirNoCand;
+                        _ActionOnList.CandAudit;
+                        _ActionOnList.CODIDecision; _ActionOnForm.CODICandidatSelect
+                    ];
+        Documents : [
+                        _DocumentCategory.DemandeCODI;
+                        _DocumentCategory.Criteres;
+                        _DocumentCategory.FichePoste;
+                        _DocumentCategory.PVDefinitif;
+                        _DocumentCategory.PVProvisoire
+                    ]
+    };
+    DAC : {
+        Key : "DAC";    Icon : "📥";       Text : "📥 DAC";
+        Color : ColorValue("#E1BEE7");  ColorHex : "#E1BEE7";
+        Actions :   [
+                        _ActionOnList.Filtrer;      _ActionOnList.Archive;
+                        _ActionOnList.Consulter;    _ActionOnList.Modifier; _ActionOnForm.Save;
+                        _ActionOnForm.AddDoc;       _ActionOnList.AddDoc;
+                        _ActionOnList.DACValider;   _ActionOnForm.DACValidate ;     _ActionOnForm.DACRefuse;
+                        _ActionOnList.CreateLot;
+                        _ActionOnList.SendNoteGW;
+                        _ActionOnList.CostraDecision;  _ActionOnForm.CostraRefus; // _ActionOnList.CostraAppro;  //    _ActionOnList.CostraEncoderRefus;
+                        _ActionOnList.GWDecision;
+                        _ActionOnList.CandAppelSend;
+                        _ActionOnList.CandSendDFA;
+                        _ActionOnList.PromRedaction;
+                        _ActionOnList.PromEnvoi;
+                        _ActionOnList.PromReception; _ActionOnForm.PromAppro; _ActionOnForm.PromRefus
+                    ];
+        Documents : [
+                        _DocumentCategory.ReaffectPV;
+                        _DocumentCategory.NotifGW;
+                        _DocumentCategory.ArreteDesign;_DocumentCategory.ArreteRecept;_DocumentCategory.ArreteRefusGW
+                    ]
+    }
+};;
+
+
+
+/*######### CONFIGURATION : Demandes Type #######################################
+Keeps a single, official list of 'Demande' types 
+so screens can resolve the current type once into vcTypeDemandeConfig 
+and then reuse its properties safely (easy to read for newbies, autocomplete-friendly, fewer typos).
+###############################################################################*/
+
+/* -----------------------------------------------------------------------------
+Enum: possible sources for "text-like" fields
+    - List     : value must come from a controlled vocabulary 
+                (reference list, ex : SP list AIRH_ListeRaisons)
+    - FreeText : value is entered manually by the user
+-----------------------------------------------------------------------------*/
+_FieldSource = {
+    List:       "List";
+    FreeText:   "FreeText"
+};;
+
+// Centralizes the official 'Demande' type labels as constants so the app can reference them via autocomplete (no repeated strings / fewer typos).
+_TypeDemande = {
+    DemandeDV:      "Demande de DV";
+    DemandeFF:      "Demande de FF";
+    FinFF:          "Fin de FF";
+    DemandeAI:      "Demande de AI";
+    FinAI:          "Fin de AI";
+    DemandeMission: "Demande de Mission";
+    FinMission:     "Fin de mission";
+    All :           "Tous les Types" // Valeur supplémentaire fictive affichée dans l'onglet de selection du type de demande
+};;
+
+/* -----------------------------------------------------------------------------
+    Table de configuration canonique associant chaque type de 'Demande' (via les constantes _TypeDemande) 
+    à ses propriétés UI/règles, pour permettre aux écrans de faire un LookUp unique et consommer le résultat.
+    Chaque attribut peut être étendu ultérieurement (ex : Required, MaxLen, ListKey, ...)
+-----------------------------------------------------------------------------*/
+_TypeDemandeConfigTable =
+    Table(
+        {
+            Type: _TypeDemande.DemandeDV;
+            Icon: "🟩";     ColorHex: "#22c55e";
+            ReasonSource: _FieldSource.List;
+            Actions: [
+                _ActionOnList.Consulter;    _ActionOnList.Finaliser;    _ActionOnList.Modifier;
+                _ActionOnList.AddDoc;
+                _ActionOnList.SendDAC;      _ActionOnList.DACValider;
+                _ActionOnList.CreateLot;
+                _ActionOnList.DirCandid;    _ActionOnList.DirNoCand;
+                _ActionOnList.DirAudition;
+                _ActionOnList.SendNoteGW;
+                _ActionOnList.CostraAppro;  _ActionOnList.CostraEncoderRefus;   _ActionOnList.CostraDecision;
+                _ActionOnList.GWDecision;
+                _ActionOnList.CandAppelSend;
+                _ActionOnList.CandSendDFA;
+                _ActionOnList.CandAudit;
+                _ActionOnList.CODIDecision;
+                _ActionOnList.PromRedaction;    _ActionOnList.PromEnvoi;    _ActionOnList.PromReception
+            ]
+        };
+        {
+            Type: _TypeDemande.DemandeFF;
+            Icon: "🟪";     ColorHex: "#a855f7";
+            ReasonSource: _FieldSource.List;
+            Actions: [
+                _ActionOnList.Consulter;    _ActionOnList.Finaliser;    _ActionOnList.Modifier;
+                _ActionOnList.AddDoc;
+                _ActionOnList.SendDAC;      _ActionOnList.DACValider;
+                _ActionOnList.CandAppelSend;
+                _ActionOnList.CandSendDFA;
+                _ActionOnList.CandAudit;
+                _ActionOnList.CODIDecision;
+                _ActionOnList.PromRedaction;    _ActionOnList.PromEnvoi;    _ActionOnList.PromReception
+            ]
+        };
+        {
+            Type: _TypeDemande.FinFF;
+            Icon: "🟦";    ColorHex: "#3b82f6";
+            ReasonSource: _FieldSource.FreeText
+        };
+        {
+            Type: _TypeDemande.DemandeAI;
+            Icon: "🟧";     ColorHex: "#f97316";
+            ReasonSource: _FieldSource.List
+        };
+        {
+            Type: _TypeDemande.FinAI;
+            Icon: "🟨";     ColorHex: "#eab308";
+            ReasonSource: _FieldSource.List
+        };
+        {
+            Type: _TypeDemande.DemandeMission;
+            Icon: "🟫";     ColorHex: "#a16207";
+            ReasonSource: _FieldSource.List
+        };
+        {
+            Type: _TypeDemande.FinMission;
+            Icon: "⬛";      ColorHex: "#000000";
+            ReasonSource: _FieldSource.List
+        }
+    );;
+    
+/*---------------------------------------------------------
+ Centralise les types officiels de catégories de documents 
+ sous forme d'énumération (constantes) pour : 
+  - garantir l'intégrité des données, 
+  - éviter les erreurs de saisie,
+  - faciliter l'autocomplétion.
+----------------------------------------------------------*/
+_DocumentCategory = {
+    DemandeCODI :   "Décision CODI demande";
+    FichePoste :    "Fiche de poste";
+    Criteres :      "Critères pondérés";
+    ReaffectPV:     "PV désignation réaffectation";
+    NotifGW:        "Notification GW";
+    PVProvisoire:   "PV provisoire";
+    PVDefinitif:    "PV définitif";
+    ArreteDesign:   "Arrêté de désignation signé";
+    ArreteRecept:   "Accusé de réception";
+    ArreteRefusGW:  "Notification de refus GW"
+};;
+/*---------------------------------------------------------
+Centralise les actions disponibles dans les formulaires (écran de détail) 
+sous forme d'énumération (constantes) pour :
+    - garantir l'intégrité des données,
+    - éviter les erreurs de saisie,
+    - faciliter l'autocomplétion,
+    - uniformiser le comportement des boutons et processus.
+
+Cette énumération est notamment utilisée pour :
+    - définir les actions autorisées par rôle via _Acteur.[Role].Actions ;
+    - définir les actions autorisées par statut via _StatutConfigTable.[StatutDetail].Actions ;
+    - configurer la propriété Action des composants personnalisés cmpActBtnXXX 
+        présents dans l'écran de détail afin de piloter leur comportement.
+
+Note : 
+    -[TECHNICAL DEBT] certaines actions sont encore utilisées directement dans des boutons standards 
+        afin d'en configurer dynamiquement le comportement.
+----------------------------------------------------------*/
+_ActionOnForm = {
+    Save :          "Enregistrer" ;
+    Create :        "Créer" ;
+    SendDAC :       "Envoyer" ;
+    AddDoc :        "Ajouter un document" ;
+    Delete :        "Supprimer" ;
+    DACRefuse :     "Refuser" ;
+    DACValidate :   "Valider" ;
+    DirCandRetenu:  "Candidat retenu" ;
+    DirCandNonRet:  "Candidat non retenu";
+    CostraRefus:    "Refus Costra";
+    CODICandidatSelect    :"Candidat sélectionné";
+    PromAppro       : "Approbation GW";
+    PromRefus       : "Refus GW"
+};;
+/*---------------------------------------------------------
+Centralise les actions et processus disponibles depuis l'écran principal
+sous forme d'énumération (constantes) pour :
+    - garantir l'intégrité des données,
+    - éviter les erreurs de saisie,
+    - faciliter l'autocomplétion,
+    - assurer une configuration cohérente des processus métier.
+
+Cette énumération est notamment utilisée pour :
+    - définir les actions autorisées par rôle via _Acteur.[Role].Actions ;
+    - définir les actions autorisées par statut via _StatutConfigTable.[StatutDetail].Actions ;
+    - configurer la propriété Action des composants personnalisés cmpActBtnXXX
+      présents dans l'écran principal ;
+    - alimenter vcCurrentProcess afin d'identifier le processus actif ;
+    - piloter le moteur de processus et différents comportements de l'interface.
+
+Selon le processus courant, les valeurs de _ActionOnList peuvent notamment
+influencer ou piloter :
+    - l'affichage des conteneurs de processus (Visible) ;
+    - le rechargement des données de l'écran principal (ScreenMain.OnVisible) ;
+    - le filtrage des demandes affichées dans dlstDemandes_M ;
+    - le type de sélection (None / Single / Multiple) de dlstDemandes_M ;
+    - certaines procédures de navigation de retour (écran Document);
+    - d'autres comportements dépendants du contexte du processus.
+
+Note : 
+    - [TECHNICAL DEBT] plusieurs contrôles de l'interface interprètent encore directement
+    vcCurrentProcess afin d'adapter leur comportement.
+    Cette logique correspond à un modèle de "comportement déduit par les contrôles".
+    - [TECHNICAL DEBT] certaines implémentations utilisent encore _ActionOnList pour :
+        * piloter l'avancement d'étapes dans dlstDemandes_M.OnChange ;
+        * appliquer des filtres spécifiques dans dlstDemandes_M.Items ;
+        * adapter le SelectionType de dlstDemandes_M.
+----------------------------------------------------------*/
+_ActionOnList = {
+    Filtrer :       "Filtrer" ;    
+    Archive :       "Archive" ; 
+    NewDemande :    "Créer" ;        
+    Consulter :     "Consulter" ;
+    Finaliser :     "Finaliser brouillon / Corriger";         
+    Modifier :      "Modifier" ;            
+    AddDoc :        "Ajouter un document (Batch)" ; 
+    SendDAC:        "Envoyer à la DAC";
+    DACValider:     "Validation DAC";
+    CreateLot :     "Constituer un lot" ; 
+    DirCandid :     "Réceptionner candidatures";
+    DirNoCand :     "Pas de candidature réaffectation" ; 
+    DirAudition :   "Audition/Codi réaffectation" ;
+    SendNoteGW :    "Envoyer Note GW";
+    CostraAppro :   "Approbation Costra";
+    CostraEncoderRefus : "Refus du Costra";
+    CostraDecision: "Décision Costra";
+    GWDecision:     "Décision GW";
+    CandAppelSend:  "Appel candidature";
+    CandSendDFA :    "Envoi candidature";
+    CandAudit:      "Fixer date audition";
+    CODIDecision :  "Décision du CODI";
+    PromRedaction: "Rédiger l'arrêté/note";
+    PromEnvoi :     "Envoi arrêté/note";
+    PromReception:  "Réceptionner décision GW"
+};;
+
+
+// Listes des valeur possible pour la variable vcApplyFilter qui détermine les filtre appliqué dynamiquement à la liste des Demandes dans dlstDemandes_M
+_FilterToApply = {
+    //# CAS 1 : Souvent le code des filtre  appliquer sera le meme que l'action dans ActionOnList et ne sera donc pas déclarer ici
+    // voir _ActionOnList
+    //# CAS 2 : Un filtre est appliqué sur base du ou des status (details) présent dans la variable : vcApplyFilterOnStatus
+    _DynamicOnStatus :       "DynamicOnStatus";
+    //# CAS 3 : Filtre entièrement paramétrisable dans dlstDemandes_M.Items
+    LotCreation :           "LotCreation";
+    LotCreationCompleted :  "LotCreationCompleted";
+    GWSendNote :            "GWSendNote";
+    GWSendNoteCompleted :   "GWSendNoteCompleted";
+    GWDecision :            "GWDecision";
+    GWDecisionCompleted :   "GWDecisionCompleted";
+    CandAudit :             "CandAudit";
+    CandAuditCompleted :    "CandAuditCompleted"
+};;
+
+// Main Status (high-level)
+_StatutGeneral = {
+    Demande:            "Formulaire de demande";
+    DACValidation:      "Validation de la demande par la DAC";
+    DirReaff:           "Directeurs en instance de réaffectation";
+    NGWProcessusNGW_DV: "Processus NGW pour DV";
+    Candidatures:       "Candidatures";
+    Promotion:          "Processus de promotion";
+    Cloture:            "Clôturé"
+};;
+
+
+/*######### CONFIGURATION : Catalogue des étapes et statut métier #########################
+Objectif :
+    Fournir une représentation métier simplifiée du workflow afin d'afficher la progression d'une demande dans l'écran de détail.
+
+Principe :
+    Le workflow réel repose sur des statuts techniques (_StatutDetail).
+    Plusieurs statuts peuvent cependant correspondre à une même étape compréhensible pour l'utilisateur.
+
+    Le catalogue ProcessStep permet donc de regrouper ces statuts en étapes métier stables 
+    et de représenter visuellement l'avancement de la demande dans son parcours.
+
+Eléments principaux :
+    - _ProcessStepMain              : macro-étapes du parcours
+    - _ProcessStepKey_V2           : identifiants des étapes métier
+    - _ProcessStepMainConfigTable_V2 : configuration des macro-étapes
+    - _ProcessStepConfigTable_V2   : configuration détaillée des étapes
+
+Utilisations :
+    - affichage du Subway de progression ;
+    - visualisation de l'étape atteinte ;
+    - regroupement des statuts techniques ;
+    - historisation du parcours métier ;
+    - calcul de la progression du workflow.
+
+###############################################################################*/
+
+/*---------------------------------------------------------------------------
+_ProcessStepMain
+    Rôle :
+        Définit les macro-étapes du processus métier.
+    Utilisation :
+        - regroupement visuel des étapes ;
+        - affichage du Subway ;
+        - calcul de progression ;
+        - regroupement fonctionnel des étapes dét*illées.
+    Source :
+        Alias de _StatutGeneral afin de réutiliser les regroupements métiers existants de l'application.
+-----------------------------------------------------------------------------*/
+_ProcessStepMain = _StatutGeneral;;
+
+/*-----------------------------------------------------------------------------
+_ProcessStepKey_V2
+    Rôle :
+        Enumération canonique des étapes métier.
+    Utilisation :
+        - identifiant stable des étapes ;
+        - référentiel utilisé par _StatutConfigTable ;
+        - clé de recherche dans _ProcessStepConfigTable_V2 ;
+        - historisation des étapes traversées.
+    Convention :
+        1 clé = 1 étape métier.
+-----------------------------------------------------------------------------*/
+_ProcessStepKey_V2 = {
+    // 10 - Demande
+    InitDemande         : "InitDemande";
+    EnvoiDAC            : "EnvoiDAC";
+
+    // 20 - DAC
+    ValidationDAC       : "ValidationDAC";
+    ConstitutionLot     : "ConstitutionLot";
+
+    // 30 - Réaffectation
+    DirReaffReception   : "DirReaffReception";
+    DirReaffAuditCODI   : "DirReaffAuditCODI";
+
+    // 40 - NGW
+    EnvoiNoteGW         : "EnvoiNoteGW";
+    NoteDecisionCOSTRA  : "NoteDecisionCOSTRA";
+    NoteDecisionGW      : "NoteDecisionGW";
+
+    // 50 - Candidatures
+    CandAppel           : "CandAppel";
+    CandAnalyse         : "CandAnalyse";
+    CandEnvoiDFA        : "CandEnvoiDFA";
+    CandFixAuditions    : "CandFixAuditions";
+    CandDecisionCODI    : "CandDecisionCODI";
+
+    // 60 - Promotion
+    ArreteRedaction     : "ArreteRedaction";
+    ArreteEnvoiGWDG     : "ArreteEnvoiGWDG";
+    ArreteDecision      : "ArreteDecision";
+
+    // 90 - Clôtures
+
+    ClotDirReaffCODI    : "ClotDirReaffCODI";
+    ClotCostraRefusee   : "ClotCostraRefusee";
+    ClotGWRefusee       : "ClotGWRefusee";
+    ClotPostePourvu     : "ClotPostePourvu";
+    ClotPosteNonPourvu  : "ClotPosteNonPourvu";
+    ClotPromRefuseeGW   : "ClotPromRefuseeGW"
+
+};;
+
+/*--------------------------------*----------------------------------*---------
+_ProcessStepMainConfigTable_V2
+    Rôle :
+        Configuration de macro-étapes de processus.
+    Utilisation :
+        - ordre d'affichage des groupes d'étapes ;
+        - regroupement visuel des étapes détaillées ;
+        - calcul du parcours métier.
+    Attributs :
+        - MainStep
+        - MainStepOrder
+-----------------------------------------------------------------------------*/
+_ProcessStepMainConfigTable_V2 =
+    Table(
+        {
+            MainStep : _ProcessStepMain.Demande;
+            MainStepOrder : 1000
+        };
+        {
+            MainStep : _ProcessStepMain.DACValidation;
+            MainStepOrder : 2000
+        };
+        {
+            MainStep : _ProcessStepMain.DirReaff;
+            MainStepOrder : 3000
+        };
+        {
+            MainStep : _ProcessStepMain.NGWProcessusNGW_DV;
+            MainStepOrder : 4000
+        };
+        {
+            MainStep : _ProcessStepMain.Candidatures;
+            MainStepOrder : 5000
+        };
+        {
+            MainStep : _ProcessStepMain.Promotion;
+            MainStepOrder : 6000
+        };
+        {
+            MainStep : _ProcessStepMain.Cloture;
+            MainStepOrder : 9000
+        }
+    );;
+
+/*-----------------------------------------------------------------------------
+_ProcessStepConfigTable_V2
+    Rôle :
+        Configuration canonique des étapes métier utilisées pour afficher la progression d'une demande dans l'écran de détail.
+        Cette table représente la source de vérité du parcours utilisateur.
+        Cette table ne pilote pas le workflow. Le workflow reste piloté par les statuts.
+        Son objectif est uniquement de fournir une représentation métier simplifiée du parcours afin d'afficher la progression de la demande à l'utilisateur.
+    Utilisation :
+        - affichage du Subway de progression ;
+        - détermination de l'étape atteinte ;
+        - regroupement des statuts techniques en étapes métier ;
+        - gestion des clôtures métier ;
+        - historisation du parcours.
+    Attributs principaux :
+        - Key
+            Identifiant unique de l'étape métier.
+        - Text
+            Libellé affiché à l'utilisateur dans le Subway.
+        - MainStep
+            Macro-étape à laquelle appartient l'étape.
+            Permet de regrouper plusieurs étapes sous un même segment fonctionnel du parcours.
+        - StepOrder
+            Ordre de progression de l'étape dans le workflow.
+            Utilisé pour déterminer les étapes passées, courantes et futures.
+        - ClosedFromStepKey
+            Indique depuis quelle étape normale une clôture métier peut être atteinte.
+            Utilisé pour représenter correctement les clôtures anticipées dans le parcours.
+    Attributs calculés :
+        - MainStepOrder
+            Ordre d'affichage de la macro-étape dans le Subway.
+        - ClosedFromStepOrder
+            Ordre de l'étape d'origine de la clôture.
+            Permet de positionner correctement une clôture dans la progression globale.
+    Convention :
+        Chaque clé déclarée dans _ProcessStepKey_V2 doit posséder exactement un enregistrement dans _ProcessStepConfigTable_V2.
+-----------------------------------------------------------------------------*/
+_ProcessStepConfigTable_V2 =
+    With(
+        {MySteps :
+            Table(
+                {
+                    Key : _ProcessStepKey_V2.InitDemande;
+                    Text : "Initialisation de la demande";
+                    MainStep : _ProcessStepMain.Demande;
+                    StepOrder : 1010
+                };
+                {
+                    Key : _ProcessStepKey_V2.EnvoiDAC;
+                    Text : "Envoi à la DAC";
+                    MainStep : _ProcessStepMain.Demande;
+                    StepOrder : 1020
+                };
+                {
+                    Key : _ProcessStepKey_V2.ValidationDAC;
+                    Text : "Validation de la demande par la DAC";
+                    MainStep : _ProcessStepMain.DACValidation;
+                    StepOrder : 2010
+                };
+                {
+                    Key : _ProcessStepKey_V2.ConstitutionLot;
+                    Text : "Constitution du lot";
+                    MainStep : _ProcessStepMain.DACValidation;
+                    StepOrder : 2020
+                };
+                {
+                    Key : _ProcessStepKey_V2.DirReaffReception;
+                    Text : "Réception des candidatures";
+                    MainStep : _ProcessStepMain.DirReaff;
+                    StepOrder : 3010
+                };
+                {
+                    Key : _ProcessStepKey_V2.DirReaffAuditCODI;
+                    Text : "Audition des candidatures par le CODI";
+                    MainStep : _ProcessStepMain.DirReaff;
+                    StepOrder : 3020
+                };
+                {
+                    Key : _ProcessStepKey_V2.EnvoiNoteGW;
+                    Text : "Envoi de la note au GW";
+                    MainStep : _ProcessStepMain.NGWProcessusNGW_DV;
+                    StepOrder : 4010
+                };
+                {
+                    Key : _ProcessStepKey_V2.NoteDecisionCOSTRA;
+                    Text : "Réception de la décision du COSTRA";
+                    MainStep : _ProcessStepMain.NGWProcessusNGW_DV;
+                    StepOrder : 4020
+                };
+                {
+                    Key : _ProcessStepKey_V2.NoteDecisionGW;
+                    Text : "Réception de la décision du GW";
+                    MainStep : _ProcessStepMain.NGWProcessusNGW_DV;
+                    StepOrder : 4030
+                };
+                {
+                    Key : _ProcessStepKey_V2.CandAppel;
+                    Text : "Appel à candidatures";
+                    MainStep : _ProcessStepMain.Candidatures;
+                    StepOrder : 5010
+                };
+                {
+                    Key : _ProcessStepKey_V2.CandAnalyse;
+                    Text : "Analyse des candidatures";
+                    MainStep : _ProcessStepMain.Candidatures;
+                    StepOrder : 5020
+                };
+                {
+                    Key : _ProcessStepKey_V2.CandEnvoiDFA;
+                    Text : "Envoi des candidatures à la DFA";
+                    MainStep : _ProcessStepMain.Candidatures;
+                    StepOrder : 5030
+                };
+                {
+                    Key : _ProcessStepKey_V2.CandFixAuditions;
+                    Text : "Fixation des dates d'audition";
+                    MainStep : _ProcessStepMain.Candidatures;
+                    StepOrder : 5040
+                };
+                {
+                    Key : _ProcessStepKey_V2.CandDecisionCODI;
+                    Text : "Réception de la décision du CODI";
+                    MainStep : _ProcessStepMain.Candidatures;
+                    StepOrder : 5050
+                };
+                {
+                    Key : _ProcessStepKey_V2.ArreteRedaction;
+                    Text : "Rédaction de l'arrêté ou de la note";
+                    MainStep : _ProcessStepMain.Promotion;
+                    StepOrder : 6010
+                };
+                {
+                    Key : _ProcessStepKey_V2.ArreteEnvoiGWDG;
+                    Text : "Envoi de l'arrêté ou de la note à l'autorité";
+                    MainStep : _ProcessStepMain.Promotion;
+                    StepOrder : 6020
+                };
+                {
+                    Key : _ProcessStepKey_V2.ArreteDecision;
+                    Text : "Réception de la décision de l'autorité";
+                    MainStep : _ProcessStepMain.Promotion;
+                    StepOrder : 6030
+                };
+                {
+                    Key : _ProcessStepKey_V2.ClotDirReaffCODI;
+                    Text : _StatutDetail.DirReaffCODI;
+                    MainStep : _ProcessStepMain.Cloture;
+                    StepOrder : 9010;
+                    ClosedFromStepKey : _ProcessStepKey_V2.DirReaffAuditCODI
+                };
+                {
+                    Key : _ProcessStepKey_V2.ClotCostraRefusee;
+                    Text : _StatutDetail.COSTRARefusee;
+                    MainStep : _ProcessStepMain.Cloture;
+                    StepOrder : 9020;
+                    ClosedFromStepKey : _ProcessStepKey_V2.NoteDecisionCOSTRA
+                };
+                {
+                    Key : _ProcessStepKey_V2.ClotGWRefusee;
+                    Text : _StatutDetail.GWRefusee;
+                    MainStep : _ProcessStepMain.Cloture;
+                    StepOrder : 9030;
+                    ClosedFromStepKey : _ProcessStepKey_V2.NoteDecisionGW
+                };
+                {
+                    Key : _ProcessStepKey_V2.ClotPostePourvu;
+                    Text : _StatutDetail.PostePourvu;
+                    MainStep : _ProcessStepMain.Cloture;
+                    StepOrder : 9040;
+                    ClosedFromStepKey : _ProcessStepKey_V2.CandDecisionCODI
+                };
+                {
+                    Key : _ProcessStepKey_V2.ClotPosteNonPourvu;
+                    Text : _StatutDetail.PosteNonPourvu;
+                    MainStep : _ProcessStepMain.Cloture;
+                    StepOrder : 9050;
+                    ClosedFromStepKey : _ProcessStepKey_V2.CandDecisionCODI
+                };
+                {
+                    Key : _ProcessStepKey_V2.ClotPromRefuseeGW;
+                    Text : _StatutDetail.PromRefuseeGW;
+                    MainStep : _ProcessStepMain.Cloture;
+                    StepOrder : 9060;
+                    ClosedFromStepKey : _ProcessStepKey_V2.ArreteEnvoiGWDG
+                }
+            )
+        };
+        AddColumns(MySteps As MyCurrentStep;
+            MainStepOrder;
+                LookUp(
+                    _ProcessStepMainConfigTable_V2;
+                    MainStep = MyCurrentStep.MainStep
+                ).MainStepOrder
+            ;
+            ClosedFromStepOrder;
+                LookUp(
+                    MySteps;
+                    Key = MyCurrentStep.ClosedFromStepKey
+                ).StepOrder
+        )
+    );;
+
+/*----------------------------------*----------------------------------*-------
+_StatutDetail
+    Rôle :
+        Catalogue des statuts opérationnels de l'application.
+        Le statut constitue la source de vérité du workflow.
+    Utilisation :
+        - stockage dans SharePoint ;
+        - pilotage des actions ;
+        - contrôle des transisions ;
+        - filtrage des demandes;
+        - attribution des responsabilités.
+    Convention :
+        Chaque valeur représente un état métier réel de la demande.
+-----------------------------------------------------------------------------*/
+_StatutDetail = {
+    //"Formulaire de demande"
+    DemandeNew:         "Nouvelle demande";    
+    DemandeBrouillon:   "Brouillon de demande";
+    DemandeBrouillonFin:"Brouillon de demande finalisé";
+    DemandeEnCours:     "Demande en cours";
+    //"Validation de la demande par la DAC"
+    DACRefusee:         "Demande refusée par DAC";
+    DACValidee:         "Demande validée par la DAC";
+    DACDVEnPrevision:   "DV en prévision";
+    //"Directeurs en instance de réaffectation"
+    DirReaffConsult:    "Consultation directeurs réaffectation";
+    DirReaffFinConsult: "Fin de Consultation des directeurs";
+    DirReaffPasCandid:  "Pas de candidatures réaffectation";
+    DirReaffAuditCODI:  "Audition/CODI réaffectation";
+    DirReaffPasReaff:   "Pas de réaffectation par le CODI";
+    //"Processus NGW pour DV";
+    NGWCOSTRADemande:   "Demande au Costra";
+    NGWAuGW:            "NGW au GW";
+    NGWGWDVValidee:     "DV validée/appel en attente";
+    //"Candidatures"
+    CandidAppelEnCours: "Appel en cours";
+    CandidAnalyse:      "Analyse candidatures";
+    CandidDFA:          "Candidatures à la DFA";
+    CandidPVEnCours:    "Analyse/CODI/PV en cours";
+    CandidPVTermines:   "Analyse/CODI/ PV terminés";
+    //"Processus de promotion";
+    PromRedaction:      "Arrêtés/NGW/NDG en rédaction";
+    PromAuGWDG:         "Arrêtés/NGW/NDG au GW/DG";
+    PromSignes:         "Arrêtés signés + AR à la DFA";
+    //"Clôturé"
+    DirReaffCODI:       "Réaffectation par le CODI";
+    COSTRARefusee:      "Demande refusée par COSTRA";
+    GWRefusee:          "Demande refusée par le GW";
+    PostePourvu:        "Poste pourvu";
+    PosteNonPourvu:     "Poste non-pourvu";
+    PromRefuseeGW:      "Promotion refusée par GW"
+};;
+
+
+/*----------------------------------*----------------------------------*-------
+_StatutConfigTable
+    Rôle :
+        Configuration canonique des statuts de l'application.
+        Cette table centralise l'ensemble des comportements associés à chaque statut mét*er.
+    Utilisation :
+        - actions dosponibles ;
+        - responsable de l'action ;
+        - catégories document*ires autorisées ;
+        - visibilité*des contrôles ;
+        - mode des formulaires ;
+        - progression métier;
+        - association aux étapes du processus.
+    Eléments principaux :
+        - StatutDetail
+        - StatutGeneral
+        - ProcessStep
+        - ProcessStepKey_V2
+        - ActionOwner
+        - D*cumentCategory
+        - Actions
+        - Controls
+    Attributs calculés :
+        - StatutGeneral_SortOrder
+        - St*tutProgressBar
+        - ProcessStep_V2
+    Migration V2 :
+        ProcessStep est conservé pour compatibilité.
+        ProcessStep_V2 est résolu automatiquement via ProcessStepKey_V2 et _ProcessStepConfigTable_V2.
+-----------------------------------------------------------------------------*/
+_StatutConfigTable =
+// StatutDetail is considered as unique identifier (key)
+AddColumns(
+    Table(
+        // 10 — Formulaire de demande
+        {
+            StatutDetail:       _StatutDetail.DemandeNew;
+            StatutGeneral:      _StatutGeneral.Demande;
+            //ProcessStep:        _ProcessStepDetail.InitDemande;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.InitDemande;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [];
+            DocumentCategory:   [
+                                    _DocumentCategory.DemandeCODI;
+                                    _DocumentCategory.Criteres;
+                                    _DocumentCategory.FichePoste
+                                ];
+            Actions:            [
+                                    _ActionOnForm.Create;
+                                    _ActionOnForm.AddDoc
+                                ];
+            Controls:   {
+                            FormGeneralInfo : {  Visible : true ; Mode : FormMode.New}
+            };
+            ButtonText: {};
+            StatutDetail_SortOrder: 5
+        };
+        {
+            StatutDetail:       _StatutDetail.DemandeBrouillon;
+            StatutGeneral:      _StatutGeneral.Demande;
+            //ProcessStep:        _ProcessStepDetail.InitDemande;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.InitDemande;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [];
+            DocumentCategory:   [
+                                    _DocumentCategory.DemandeCODI;
+                                    _DocumentCategory.Criteres;
+                                    _DocumentCategory.FichePoste
+                                ];
+            Actions:            [
+                                    _ActionOnList.Modifier;
+                                    _ActionOnForm.Save;
+                                    _ActionOnForm.Delete;
+                                    _ActionOnForm.AddDoc;
+                                    _ActionOnForm.SendDAC
+
+                                ];
+            Controls:   {
+                            FormGeneralInfo :   {Visible:true ;     Mode: FormMode.Edit}
+            };
+            ButtonText: {
+                Edit: "Finaliser brouillon"
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            StatutDetail:       _StatutDetail.DemandeBrouillonFin;
+            StatutGeneral:      _StatutGeneral.Demande;
+            //ProcessStep:        _ProcessStepDetail.InitDemande;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.InitDemande;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [];
+            DocumentCategory:   [
+                                    _DocumentCategory.DemandeCODI;
+                                    _DocumentCategory.Criteres;
+                                    _DocumentCategory.FichePoste
+                                ];
+            Actions:            [
+                                    _ActionOnList.Modifier;
+                                    _ActionOnForm.Save;
+                                    _ActionOnForm.Delete;
+                                    _ActionOnForm.AddDoc;
+                                    _ActionOnForm.SendDAC
+                                ];
+            Controls:   {
+                            FormGeneralInfo :   {Visible:true ;     Mode: FormMode.Edit}
+            };
+            ButtonText: {
+                Edit: "Modifier"
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            StatutDetail:       _StatutDetail.DemandeEnCours;
+            StatutGeneral:      _StatutGeneral.Demande;
+            //ProcessStep:        _ProcessStepDetail.EnvoiDAC;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.EnvoiDAC;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnForm.DACRefuse;
+                                    _ActionOnForm.DACValidate;
+                                    _ActionOnList.Modifier
+                                ];
+            Controls:   {
+                            FormGeneralInfo :       {Visible: true;    Mode: FormMode.View};
+                            FormNextStep :               {Visible: true;    Mode: FormMode.Edit};
+                            crdCommentValidDAC_F :  {Visible: true;    Mode: DisplayMode.Edit}
+            };
+            ButtonText: {
+                Edit: "Valider/Refuser"
+            };
+            StatutDetail_SortOrder: 20
+        };
+
+        // 20 — Validation de la demande par la DAC
+        {
+            StatutDetail:       _StatutDetail.DACRefusee;
+            StatutGeneral:      _StatutGeneral.Demande;
+            //ProcessStep:        _ProcessStepDetail.InitDemande;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.InitDemande;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [];
+            DocumentCategory:   [
+                                    _DocumentCategory.DemandeCODI;
+                                    _DocumentCategory.Criteres;
+                                    _DocumentCategory.FichePoste
+                                ];
+            Actions:            [
+                                    _ActionOnList.Modifier;
+                                    _ActionOnForm.Save;
+                                    _ActionOnForm.Delete;
+                                    _ActionOnForm.AddDoc;
+                                    _ActionOnForm.SendDAC
+                                ];
+            Controls:   {
+                            FormGeneralInfo :       {  Visible : true ; Mode : FormMode.Edit};
+                            FormNextStep :               {  Visible : true ; Mode : FormMode.View};
+                            crdCommentValidDAC_F :  {  Visible : true ; Mode : DisplayMode.View}
+            };
+            ButtonText: {
+                Edit: "Corriger"
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            StatutDetail:       _StatutDetail.DACValidee;
+            StatutGeneral:      _StatutGeneral.DACValidation;
+            //ProcessStep:        _ProcessStepDetail.ValidationDAC;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ValidationDAC;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [];
+            DocumentCategory:   [];
+            Actions:            [];
+            Controls:   {
+                            FormGeneralInfo :   {Visible: true; Mode: FormMode.View};
+                            FormNextStep :      {Visible: true; Mode: FormMode.Edit}
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            StatutDetail:       _StatutDetail.DACDVEnPrevision;
+            StatutGeneral:      _StatutGeneral.DACValidation;
+            //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ConstitutionLot;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [];
+            Controls:   {
+                            FormGeneralInfo :   {Visible: true ; Mode: FormMode.View};
+                            FormNextStep :      {Visible: true ; Mode: FormMode.View}
+            };
+            StatutDetail_SortOrder: 20
+        };
+
+        // 30 — Directeurs en instance de réaffectation
+        {
+            StatutDetail:       _StatutDetail.DirReaffConsult;
+            StatutGeneral:      _StatutGeneral.DirReaff;
+            //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ConstitutionLot;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [];
+            Controls:   {
+                            FormGeneralInfo :               { Visible : true ; Mode : FormMode.View};
+                            FormNextStep :                  { Visible : true ; Mode : FormMode.View};
+                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : FormMode.View}
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            // REM : Statut assigné automatiquement à échéance via Power Automate
+            StatutDetail:       _StatutDetail.DirReaffFinConsult;
+            StatutGeneral:      _StatutGeneral.DirReaff;
+            //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ConstitutionLot;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [];
+            Controls:   {
+                            FormGeneralInfo :   {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :           {  Visible : true ; Mode : FormMode.View};
+                            crdDirReaffFinConsultation_F :           { Visible : true ; Mode : FormMode.View}
+            };
+            StatutDetail_SortOrder: 15
+        };
+        {
+            StatutDetail:       _StatutDetail.DirReaffPasCandid;
+            StatutGeneral:      _StatutGeneral.DirReaff;
+            //ProcessStep:        _ProcessStepDetail.DirReaffReception;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.DirReaffReception;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [];
+            Controls:   {
+                            FormGeneralInfo :   {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :           {  Visible : true ; Mode : FormMode.View};
+                            crdDirReaffFinConsultation_F :           { Visible : true ; Mode : FormMode.View}
+            };
+            StatutDetail_SortOrder: 20
+        };
+        {
+            StatutDetail:       _StatutDetail.DirReaffAuditCODI;
+            StatutGeneral:      _StatutGeneral.DirReaff;
+            //ProcessStep:        _ProcessStepDetail.DirReaffReception;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.DirReaffReception;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [
+                                    _DocumentCategory.ReaffectPV
+                                ];
+            Actions:            [
+                                    _ActionOnForm.AddDoc;
+                                    _ActionOnForm.DirCandRetenu;
+                                    _ActionOnForm.DirCandNonRet
+                                ];
+            Controls:   {
+                            FormGeneralInfo :    {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :            {  Visible : true ; Mode : FormMode.View};
+                            crdDirReaffFinConsultation_F :           { Visible : true ; Mode : FormMode.View}
+            };
+            ButtonText: {
+                Edit: "Résultat audition"
+            };
+            StatutDetail_SortOrder: 30
+        };
+        {
+            StatutDetail:       _StatutDetail.DirReaffPasReaff;
+            StatutGeneral:      _StatutGeneral.DirReaff;
+            //ProcessStep:        _ProcessStepDetail.DirReaffAuditCODI;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.DirReaffAuditCODI;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [];
+            Controls:   {
+                            FormGeneralInfo :   {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :           {  Visible : true ; Mode : FormMode.View};
+                            crdDirReaffFinConsultation_F :           { Visible : true ; Mode : FormMode.View}
+            };
+            StatutDetail_SortOrder: 40
+        };
+
+        // 40 — Processus NGW pour DV
+        {
+            StatutDetail:       _StatutDetail.NGWCOSTRADemande;
+            StatutGeneral:      _StatutGeneral.NGWProcessusNGW_DV;
+            //ProcessStep:        _ProcessStepDetail.EnvoiNoteGW;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.EnvoiNoteGW;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnForm.CostraRefus;
+                                    _ActionOnList.CostraAppro;
+                                    _ActionOnList.Modifier
+                                ];
+            Controls:   {
+                            FormGeneralInfo :           {Visible: true; Mode: FormMode.View};
+                            FormNextStep :              {Visible: true; Mode: FormMode.Edit};
+                            crdCommentValidCOSTRA_F :   {Visible: true; Mode: DisplayMode.Edit}
+            };
+            ButtonText: {
+                Edit: "Décision COSTRA"
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            StatutDetail:       _StatutDetail.NGWAuGW;
+            StatutGeneral:      _StatutGeneral.NGWProcessusNGW_DV;
+            //ProcessStep:        _ProcessStepDetail.NoteDecisionCOSTRA;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.NoteDecisionCOSTRA;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [
+                                    _DocumentCategory.NotifGW
+                                ];
+            Actions:            [
+                                    _ActionOnList.GWDecision
+                                ];
+            Controls:   {
+                            FormGeneralInfo :   {Visible: true; Mode: FormMode.View};
+                            FormNextStep :      {Visible: true; Mode: FormMode.View};
+                            crdCommentValidGW_F:{Visible: true; Mode: DisplayMode.View}
+
+            };
+            StatutDetail_SortOrder: 20
+        };
+        {
+            StatutDetail:       _StatutDetail.NGWGWDVValidee;
+            StatutGeneral:      _StatutGeneral.NGWProcessusNGW_DV;
+            //ProcessStep:        _ProcessStepDetail.NoteDecisionGW;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.NoteDecisionGW;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.CandAppelSend
+                                ];
+            Controls:   {
+                            FormGeneralInfo :   {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :           {  Visible : true ; Mode : FormMode.View}
+            };
+            StatutDetail_SortOrder: 30
+        };
+
+        // 50 — Candidatures
+        {
+            StatutDetail:       _StatutDetail.CandidAppelEnCours;
+            StatutGeneral:      _StatutGeneral.Candidatures;
+            //ProcessStep:        _ProcessStepDetail.CandAppel;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.CandAppel;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    // Le changement de statut est automatique via Power Automate
+                                    _ActionOnList.Modifier;
+                                    _ActionOnForm.Save
+                                ];
+            Controls:   {
+                            FormGeneralInfo :           {Visible: true; Mode: FormMode.View};
+                            FormNextStep :              {Visible: true; Mode: FormMode.Edit};
+                            crdDateCandidFinAppel_F:    {Visible: true; Mode: DisplayMode.Edit}
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            // REM : Statut assigné automatiquement à échéance via Power Automate
+            StatutDetail:       _StatutDetail.CandidAnalyse;
+            StatutGeneral:      _StatutGeneral.Candidatures;
+            //ProcessStep:        _ProcessStepDetail.CandAnalyse;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.CandAnalyse;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.CandSendDFA
+                                ];
+            Controls:   {
+                            FormGeneralInfo :           {Visible: true; Mode: FormMode.View};
+                            FormNextStep :              {Visible: true; Mode: FormMode.View};
+                            crdDateCandidFinAppel_F:    {Visible: true; Mode: DisplayMode.Edit}
+            };
+            StatutDetail_SortOrder: 20
+        };
+        {
+            StatutDetail:       _StatutDetail.CandidDFA;
+            StatutGeneral:      _StatutGeneral.Candidatures;
+            //ProcessStep:        _ProcessStepDetail.CandEnvoiDFA;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.CandEnvoiDFA;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.CandAudit
+                                ];
+            Controls:   {
+                            FormGeneralInfo :       {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :          {  Visible : true ; Mode : FormMode.View};
+                            crdDateCandAudition_F:  {Visible: true; Mode: DisplayMode.Edit}
+
+            };
+            StatutDetail_SortOrder: 30
+        };
+        {
+            StatutDetail:       _StatutDetail.CandidPVEnCours;
+            StatutGeneral:      _StatutGeneral.Candidatures;
+            //ProcessStep:        _ProcessStepDetail.CandFixAuditions;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.CandFixAuditions;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [
+                                    _DocumentCategory.PVDefinitif;
+                                    _DocumentCategory.PVProvisoire
+                                ];
+            Actions:            [
+                                    _ActionOnList.Modifier;
+                                    _ActionOnForm.Save;
+                                    _ActionOnList.CODIDecision;
+                                    _ActionOnForm.CODICandidatSelect
+                                ];
+            Controls:   {
+                            FormGeneralInfo :       {Visible: true; Mode: FormMode.View};
+                            FormNextStep :          {Visible: true; Mode: FormMode.Edit};
+                            crdDateCandAudition_F:  {Visible: true; Mode: DisplayMode.Edit};
+                            crdCODICandRetenu_F:    {Visible: true; Mode: DisplayMode.Edit}
+            };
+            StatutDetail_SortOrder: 40
+        };
+        {
+            StatutDetail:       _StatutDetail.CandidPVTermines;
+            StatutGeneral:      _StatutGeneral.Candidatures;
+            //ProcessStep:        _ProcessStepDetail.CandDecisionCODI;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.CandDecisionCODI;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.PromRedaction
+                                ];
+            Controls:   {
+                            FormGeneralInfo :           {Visible: true; Mode: FormMode.View};
+                            FormNextStep :              {Visible: true; Mode: FormMode.View};
+                            crdDateCandAudition_F:      {Visible: true; Mode: DisplayMode.Edit};
+                            crdCODICandRetenu_F:        {Visible: true; Mode: DisplayMode.View}
+
+            };
+            StatutDetail_SortOrder: 50
+        };
+
+        // 60 — Processus de promotion
+        {
+            StatutDetail:       _StatutDetail.PromRedaction;
+            StatutGeneral:      _StatutGeneral.Promotion;
+            //ProcessStep:        _ProcessStepDetail.ArreteRedaction;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ArreteRedaction;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.PromEnvoi
+                                ];
+            Controls:   {
+                            FormGeneralInfo :       {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :          {  Visible : true ; Mode : FormMode.View};
+                            crdCODICandRetenu_F:    {  Visible : true ; Mode : DisplayMode.View}
+            };
+            StatutDetail_SortOrder: 60
+        };
+        {
+            StatutDetail:       _StatutDetail.PromAuGWDG;
+            StatutGeneral:      _StatutGeneral.Promotion;
+            //ProcessStep:        _ProcessStepDetail.ArreteEnvoiGWDG;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ArreteEnvoiGWDG;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [
+                                    _DocumentCategory.ArreteDesign;
+                                    _DocumentCategory.ArreteRecept;
+                                    _DocumentCategory.ArreteRefusGW
+                                ];
+            Actions:            [
+                                    _ActionOnList.PromReception;
+                                    _ActionOnList.Modifier;
+                                    _ActionOnForm.PromAppro;
+                                    _ActionOnForm.PromRefus;
+                                    _ActionOnForm.AddDoc
+                                ];
+            Controls:   {
+                            FormGeneralInfo :   {Visible: true;    Mode: FormMode.View};
+                            FormNextStep :      {Visible: true;    Mode: FormMode.Edit};
+                            crdCommentPromGW_F: {Visible: true;    Mode: DisplayMode.Edit}
+            };
+            ButtonText: {
+                Edit: "Réceptionner décision"
+            };
+            StatutDetail_SortOrder: 70
+        };
+        {
+            StatutDetail:       _StatutDetail.PromSignes;
+            StatutGeneral:      _StatutGeneral.Cloture;
+            //ProcessStep:        _ProcessStepDetail.ArreteDecision;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ArreteDecision;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            Controls:   {
+                            FormGeneralInfo :   {Visible: true;    Mode: FormMode.View};
+                            FormNextStep :      {Visible: true;    Mode: FormMode.View}
+            };
+            StatutDetail_SortOrder: 80
+        };
+
+        // 90 — Clôturé (statuts terminaux)
+        {
+            StatutDetail:       _StatutDetail.DirReaffCODI;
+            StatutGeneral:      _StatutGeneral.Cloture;
+            //ProcessStep:        _ProcessStepDetail.ClotDirReaffCODI;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotDirReaffCODI;
+            ActionOwner:        Blank();
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.Consulter
+                                ];
+            Controls:   {
+                            FormGeneralInfo :   {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :           {  Visible : true ; Mode : FormMode.View}
+            };
+            ButtonText: {
+                Edit: "N/A";
+                Cancel: "Fermer"
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            StatutDetail:       _StatutDetail.COSTRARefusee;
+            StatutGeneral:      _StatutGeneral.Cloture;
+            //ProcessStep:        _ProcessStepDetail.Cloture;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotCostraRefusee;
+            ActionOwner:        Blank();
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.Consulter
+                                ];
+            Controls:   {
+                            FormGeneralInfo :           {Visible : true; Mode : FormMode.View};
+                            FormNextStep :              {Visible : true; Mode : FormMode.View};
+                            crdCommentValidCOSTRA_F:    {Visible : true; Mode : DisplayMode.View}
+
+            };
+            ButtonText: {
+                Edit: "N/A";
+                Cancel: "Fermer"
+            };
+            StatutDetail_SortOrder: 20
+        };
+        {
+            StatutDetail:       _StatutDetail.GWRefusee;
+            StatutGeneral:      _StatutGeneral.Cloture;
+            //ProcessStep:        _ProcessStepDetail.Cloture;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotGWRefusee;
+            ActionOwner:        Blank();
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.Consulter
+                                ];
+            Controls:   {
+                            FormGeneralInfo :   {  Visible : true ; Mode : FormMode.View};
+                            FormNextStep :      {  Visible : true ; Mode : FormMode.View};
+                            crdCommentValidGW_F :    {  Visible : true ; Mode : DisplayMode.View}
+            };
+            ButtonText: {
+                Edit: "N/A";
+                Cancel: "Fermer"
+            };
+            StatutDetail_SortOrder: 30
+        };
+        {
+            StatutDetail:       _StatutDetail.PostePourvu;
+            StatutGeneral:      _StatutGeneral.Cloture;
+            //ProcessStep:        _ProcessStepDetail.Cloture;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotPostePourvu;
+            ActionOwner:        Blank();
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            StatutDetail_SortOrder: Blank()
+        };
+        {
+            StatutDetail:       _StatutDetail.PosteNonPourvu;
+            StatutGeneral:      _StatutGeneral.Cloture;
+            //ProcessStep:        _ProcessStepDetail.Cloture;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotPosteNonPourvu;
+            ActionOwner:        Blank();
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            StatutDetail_SortOrder: Blank()
+        };
+        {
+            StatutDetail:       _StatutDetail.PromRefuseeGW;
+            StatutGeneral:      _StatutGeneral.Cloture;
+            //ProcessStep:        _ProcessStepDetail.Cloture;
+            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotPromRefuseeGW;
+            ActionOwner:        Blank();
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeDV
+                                ];
+            DocumentCategory:   [];
+            Actions:            [
+                                    _ActionOnList.Consulter
+                                ];
+            Controls:   {
+                            FormGeneralInfo :      {Visible : true; Mode : FormMode.View};
+                            FormNextStep :         {Visible : true; Mode : FormMode.View};
+                            crdCommentPromGW_F:    {Visible : true; Mode : DisplayMode.View}
+
+            };
+            ButtonText: {
+                Edit: "N/A";
+                Cancel: "Fermer"
+            };
+            StatutDetail_SortOrder: Blank()
+        }
+    );
+    StatutGeneral_SortOrder;
+        Switch(
+            StatutGeneral;
+            _StatutGeneral.Demande;            10;
+            _StatutGeneral.DACValidation;      20;
+            _StatutGeneral.DirReaff;           30;
+            _StatutGeneral.NGWProcessusNGW_DV; 40;
+            _StatutGeneral.Candidatures;       50;
+            _StatutGeneral.Promotion;          60;
+            _StatutGeneral.Cloture;            00;
+            99
+        );
+
+    StatutProgressBar;
+        Switch(
+            StatutGeneral;
+            _StatutGeneral.Demande;            "▰▱▱▱▱▱▱";
+            _StatutGeneral.DACValidation;      "▰▰▱▱▱▱▱";
+            _StatutGeneral.DirReaff;           "▰▰▰▱▱▱▱";
+            _StatutGeneral.NGWProcessusNGW_DV; "▰▰▰▰▱▱▱";
+            _StatutGeneral.Candidatures;       "▰▰▰▰▰▱▱";
+            _StatutGeneral.Promotion;          "▰▰▰▰▰▰▱";
+            _StatutGeneral.Cloture;            "▰▰▰▰▰▰▰✔";
+            "▱▱▱▱▱▱▱"
+        );
+
+    ProcessStep_V2;
+        LookUp(
+            _ProcessStepConfigTable_V2;
+            Key = ProcessStepKey_V2
+        )
+);;
+
+
+/*######### CONFIGURATION : FieldCatalog pour les "Demandes" #######################################
+    Centralise les noms internes des champs notamment pour a liste affichant les 'Demandes' sur l’écran principal
+    Évite les chaînes codées en dur et les erreurs de frappe lors des références aux colonnes
+    Sert de source unique de vérité pour la configuration et les formules associées
+################################################################################################*/ 
+
+// Centralise les noms internes des champs afin d’éviter les incohérences de nommage et les fautes de frappe
+_DemandesFieldName = {
+    // Champs SharePoint
+    ID                      : "ID";
+    TypeDemande             : "TypeDemande";
+    NumEmploi               : "NumEmploi";
+    Lot                     : "Lot";
+    DateDemandeCodi         : "DateDemandeCodi";
+    DateRaison              : "DateRaison";
+    SPW                     : "SPW";
+    Departement             : "Departement";
+    Departement_Abreviation : "Departement_Abreviation";
+    Direction               : "Direction";
+    Service                 : "Service";
+    CodeES                  : "CodeES";
+    ResidenceAdministrative : "ResidenceAdministrative";
+    Rang                    : "Rang";
+    PosteOccupeParFF        : "PosteOccupeParFF";
+    PersonneSurPoste        : "PersonneSurPoste";
+    PosteSecurite           : "Postedes_x00e9_curit_x00e9_";
+    ClasseRisques           : "ClasseRisques";
+    RaisonDemande           : "RaisonDemande";
+    StatutGeneral           : "Statut_x0020_General";
+    StatutDetail            : "Statut_x0020_Detail";
+    DirReaffFinConsultation : "DirReaffFinConsultation";
+    Modified                : "Modified";
+    // Champs ajoutés
+    TypeDemandeValue        :"TypeDemandeValue";
+    ModifiedBy              : "ModifiedBy";
+    TypeDemandeColor        : "TypeDemandeColor";
+    TypeDemandeIcon         : "TypeDemandeIcon";
+    ActionOwner             : "ActionOwner";
+    ActionOwnerColor        : "ActionOwnerColor";
+    StatutSortOrder         : "StatutSortOrder";
+    StatutProgressBar       : "StatutProgressBar";
+    StatutEcheance          : "StatutEcheance";
+    RecordSelected          : "RecordSelected"
+};;
+
+_Decision = {
+    Validée : "Validée";
+    Refusée : "Refusée";
+    DirNoCand : "Pas de candidature réaffectation";
+    DirAudition :  "Audition/Codi réaffectation"
+};;
+
+// Défini le catalogue de colonnes par défaut pour la table 'Demandes' (libellés, largeurs, ordre et visibilité par rôle)
+// Sert de base pour la propriété columns_Items du contrôle FluentDetailsList
+_tblDemandesFieldCatalog_V2 = [
+    {ColName : _DemandesFieldName.ID;   ColDisplayName:"#";
+        ColWidth : 50;     ColResizable : false;
+        ColSortable : true       
+    };
+    {ColName : _DemandesFieldName.TypeDemandeValue;   ColDisplayName:"Type";
+        ColCellType: "indicatortag";    ColTagColorColumn : _DemandesFieldName.TypeDemandeColor;
+        ColWidth : 150;     ColResizable : false;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.Lot;   ColDisplayName:"Lot";
+        ColRowHeader:true;    ColIsBold:true;        
+        ColWidth : 50;     ColResizable : false;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.NumEmploi;   ColDisplayName:"# Emploi";
+        ColCellType: "link";
+        ColRowHeader:true;    ColIsBold:true;        
+        ColWidth : 80;     ColResizable : true;
+        ColSortable : true;      
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.ActionOwner;   ColDisplayName:"Responsable";
+        ColCellType: "tag";    ColTagColorColumn : _DemandesFieldName.ActionOwnerColor;
+        ColWidth : 80;     ColResizable : false;
+        ColSortable : true;      
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.CodeES;   ColDisplayName:"#ES";
+        ColWidth : 80;     ColResizable : false;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.SPW;   ColDisplayName:"SPW";
+        ColWidth : 70;     ColResizable : false;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key] 
+    };
+    {ColName : _DemandesFieldName.Departement_Abreviation;   ColDisplayName:"Département";
+        ColWidth : 80;     ColResizable : false;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.Departement;   ColDisplayName:"Département";
+        ColWidth : 200;     ColResizable : true;
+                ColShowAsSubTextOf:_DemandesFieldName.Departement_Abreviation;
+
+        ColSortable : true;       
+        View : [] 
+    };    
+    {ColName : _DemandesFieldName.Direction;   ColDisplayName:"Direction";
+        ColWidth : 200;     ColResizable : true;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.Service;   ColDisplayName:"Service";
+        ColWidth : 200;     ColResizable : true;
+        ColSortable : true;       
+        View : [] 
+    };
+    {ColName : _DemandesFieldName.Rang;   ColDisplayName:"Rang";
+        ColWidth : 50;     ColResizable : false;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.DateDemandeCodi;   ColDisplayName:"Date Codi";
+        ColWidth : 86;     ColResizable : false;
+        ColSortable : true;       
+        View : [] 
+    };
+    {ColName : _DemandesFieldName.StatutDetail;   ColDisplayName:"Statut (Détails)";
+        ColWidth : 200;     ColResizable : false;
+        ColSortable : true;   ColSortBy : _DemandesFieldName.StatutSortOrder; 
+        ColMultiLine:false;
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.StatutEcheance;
+        ColShowAsSubTextOf:_DemandesFieldName.StatutDetail;
+        ColInlineLabel : "Date : ";
+        ColWidth : 250;     ColResizable : false; ColPaddingLeft : 5;
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.StatutProgressBar;   ColDisplayName:"Statut";
+        ColWidth : 200;     ColResizable : false;
+                ColMultiLine:false;
+        ColSortable : true;   ColSortBy : _DemandesFieldName.StatutSortOrder;    
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    }; 
+  
+    {ColName : _DemandesFieldName.StatutGeneral;
+        ColShowAsSubTextOf:_DemandesFieldName.StatutProgressBar;
+        ColWidth : 250;     ColResizable : false; ColPaddingLeft : 5;
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.StatutSortOrder;
+        ColWidth : 20;     ColResizable : false;
+        View : [] 
+    };
+    {ColName : _DemandesFieldName.Modified;   ColDisplayName:"Modifié";
+        ColWidth : 150;     ColResizable : true;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName : _DemandesFieldName.ModifiedBy;   ColDisplayName:"Modifié par";
+            ColShowAsSubTextOf:_DemandesFieldName.Modified;
+        ColSortable : true;       
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    };
+    {ColName:"expand";  ColDisplayName:"";
+        ColWidth:32;ColResponsive:false; ColRightAligned:true; 
+        ColCellType:"expand";
+        View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
+    }
+ ] ;;
+
+
+//Purpose: Indicates whether multiple 'Deamandes' are currently selected in the main table to drive UI behavior and available bulk actions.
+_MuliSelectOnDemandes = CountRows(dlstDemandes_M.SelectedItems) > 1 ;;
+_SingleSelectOnDemandes = CountRows(dlstDemandes_M.SelectedItems) = 1 ;;
+_NoSelectOnDemandes = CountRows(dlstDemandes_M.SelectedItems) = 0 ;;
+
+
+
+_txtMessage = {
+    PlaceHolderForField :       
+        "À compléter…";
+    AutomaticField : 
+        "Automatique…";
+    PlaceHolderForDropdown : 
+        "Choisissez une valeur ";
+    EmploiInconnu :  
+        "Numéro d'emploi inconnu, Veuillez contacter la DAC";
+    EmploiContactDAC : 
+        "Si les champs préencodés ne sont plus corrects, merci de contacter la cellule promotions et d'attendre avant d'enregistrer la demande que les données soient corrigées. ";
+    DocLinkedToDemandeSuccess : 
+        "Votre document est lié à la demande avec succès";
+    DocLinkedToDemandesSuccess : 
+        "Votre document est lié aux demandes avec succès";
+    DocUnLinkedToDemandeSuccess : 
+        "Votre document a été délieé de la demande avec succès";
+    RequiredFields : 
+        "Veuillez vérifier que tous les champs et/ou documents obligatoires sont complétés";
+    NoEligibleRequest:
+        "Aucune demande n'est actuellement éligible pour effectuer cette action. Statut attendu : ";
+    SelectionNothing : 
+        "Aucune demande sélectionnée.";
+    SelectionNotSingle : 
+        "Une seule demande doit être sélectionnée pour effectuer cette action.";
+    SelectionIncorrectStatus:
+        "La demande sélectionnée ne possède pas le statut attendu pour effectuer cette action. Statut attendu : ";
+    SelectionIncorrectStatuses:
+        "Au moins une demande sélectionnée ne possède pas le statut attendu pour effectuer cette action. Statut attendu : ";
+    SelectionProcessNoEligibleItem:
+        "Cette action n'est disponible que si au moins une demande possède le statut attendu. Statut attendu : ";
+    ProcessOnGoing : 
+        "Un traitement est déjà en cours. Veuillez le terminer avant d'effectuer une autre action.";
+    ActionUnsupported :
+        "Une erreur inattendue s'est produite (Action non supportée)";
+    NoRecipient : "Aucune liste de diffusion DFA n'est configurée pour ce SPW. Le changement est enregistré mais aucune notification n'a pu être envoyée.";
+    EmailSubjectPrefix : If(vvAppConfig.ProdEnvironnement; ""; "[TEST] [" & _AppName & "] ");
+    EmailFooter : 
+        "<br><br>👉 <a href='" & _AppLink & "'>" &
+        "Accéder à " & _AppName & " pour consulter la demande</a><br><br>" &
+        "Ceci est une notification automatique."
+};;
+
+_Emoji = {
+    _1 : "1️⃣";
+    _2 : "2️⃣";
+    _3 : "3️⃣";
+    _4 : "4️⃣";
+    _5 : "5️⃣";
+    _6 : "6️⃣"
+
+};;
+
+// Builds DAC distribution list (transversal role)
+_DACEmailList() : Text = 
+    With(
+        {
+            MyContactInfo: LookUp(ccAIRH_DFA_DAC_Infos; Role.Value = _Acteur.DAC.Key)
+        };
+        Concat(
+        Filter(
+            Table(
+                ForAll(
+                    MyContactInfo.ContactPerson;
+                    {Email: Email}
+                );
+                {Email: MyContactInfo.AdditionnalContactEmail}
+            );
+            !IsBlank(Email)
+        );
+        Email;
+        ";"
+    )
+);;
+// Builds DFA distribution list for a given SPW 
+_DFAEmailList(MySpw : Text) : Text = 
+    With(
+        {
+            MyContactInfo: LookUp(ccAIRH_DFA_DAC_Infos; SPW = MySpw)
+        };
+    Concat(
+        Filter(
+            Table(
+                ForAll(
+                    MyContactInfo.ContactPerson;
+                    {Email: Email}
+                );
+                {Email: MyContactInfo.AdditionnalContactEmail}
+            );
+            !IsBlank(Email)
+        );
+        Email;
+        ";"
+    )
+);;
+
+
+/**************************************************************************************************
+ * Fonction : fxLogStatusHistory
+ * ------------------------------------------------------------------------------------------------
+ * Enregistre dans l'historique les changements de statut d'une ou plusieurs demandes.
+ * En complément du statut, la fonction enregistre également l'étape métier (ProcessStep) déclarée dans _StatutConfigTable.
+ *
+ * Cette fonction centralise la logique de traçabilité des statuts afin d'éviter de dupliquer
+ * le même code dans plusieurs écrans ou traitements. Toute évolution du mécanisme
+ * d'historisation peut ainsi être réalisée à un seul endroit.
+ *
+ * Concept de fonction :
+ * - Une fonction permet de regrouper une logique métier réutilisable sous un nom explicite.
+ * - Elle peut recevoir des paramètres en entrée et exécuter une série d'actions.
+ * - Ici, la fonction ne renvoie aucune valeur (type Void) mais réalise une action :
+ *   l'ajout d'entrées dans la liste AIRH_Status_History.
+ *
+ * Paramètres :
+ * - MyItems  : Liste des demandes à historiser.
+ * - MyStatut : Informations du statut à enregistrer (général et détaillé).
+ * - MyActeur : Acteur responsable du changement de statut.
+ *
+ * Utilisation :
+ *       fxLogStatusHistory(
+ *           ShowColumns(dlstDemandes_M.SelectedItems;ID;NumEmploi);
+ *           MyNextStatus;
+ *           vvUserRole.Key
+ *       );;
+ *
+ * Résultat :
+ * Une ligne d'historique est créée pour chaque demande reçue en paramètre.
+ **************************************************************************************************/
+// Type definition for statut
+_TypeStatut:= Type( { General: Text; Detail: Text } );;
+_TypeIDList:= Type ([{ID : Number; NumEmploi : Text}]);;
+
+fxLogStatusHistory(
+    Myitems : _TypeIDList;
+    MyStatut : _TypeStatut;
+    MyActeur : Text
+): Void =
+{
+    With(
+        {
+            // Recherche de la configuration canonique du statut.
+            // Permet de récupérer l'étape métier associée sans dupliquer le mapping dans les traitements.
+            MyStatutConfig :
+                LookUp(_StatutConfigTable;StatutDetail = MyStatut.Detail
+                )
+        };
+        Patch(AIRH_Status_History;
+            // Création d'un enregistrement vide pour chaque demande à historiser.
+            ForAll(
+                Sequence(CountRows(Myitems));
+                Defaults(AIRH_Status_History)
+            );
+            // Alimentation des informations métier dans les enregistrements créés.
+            ForAll(
+                Myitems;
+                {
+                    Titre:              ThisRecord.NumEmploi;
+                    ID_Demande:         ThisRecord.ID;
+                    StatutGeneral:      MyStatut.General;
+                    StatutDetail:       MyStatut.Detail;
+                    // Historisation de l'étape métier telle qu'elle était définie lors du changement de statut.
+                    ProcessStepKey:     MyStatutConfig.ProcessStep_V2.Key;
+                    ProcessStepText:    MyStatutConfig.ProcessStep_V2.Text;
+                    Acteur:             MyActeur
+                }
+            )
+        )
+    )
+};;
