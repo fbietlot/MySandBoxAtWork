@@ -1,0 +1,271 @@
+- ctnProcessCreateLot_M:
+    Control: GroupContainer@1.5.0
+    Variant: AutoLayout
+    Properties:
+      Height: =Parent.Height
+      LayoutAlignItems: =LayoutAlignItems.Stretch
+      LayoutDirection: =LayoutDirection.Vertical
+      PaddingBottom: =8
+      PaddingLeft: =8
+      PaddingRight: =8
+      PaddingTop: =8
+      Visible: =vcCurrentProcess = _ActionOnList.CreateLot
+      Width: =Parent.Width
+      X: =(Parent.Width - Self.Width ) /2
+    Children:
+      - Text5_4:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            Color: =App.Theme.Colors.Darker10
+            FontWeight: =FontWeight.Bold
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Size: =16
+            Text: |-
+              ="Processus : Constitution de lot"
+            Underline: =true
+            Width: =220
+      - Container7_1:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            BorderStyle: =BorderStyle.None
+            FillPortions: =0
+            Height: =50
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =414
+            Y: =40
+          Children:
+            - Text5_5:
+                Control: ModernText@1.0.0
+                Properties:
+                  BorderColor: =App.Theme.Colors.Darker10
+                  BorderStyle: =BorderStyle.Solid
+                  BorderThickness: =0
+                  Color: =If(vcCurrentWizardStep= 1 ,  App.Theme.Colors.Darker10, Color.Silver)
+                  FontWeight: =FontWeight.Bold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =3
+                  PaddingTop: =3
+                  Size: =14
+                  Text: =_Emoji._1 & If(vcCurrentWizardStep > 1 , "✅","")  & " Sélectionner les demandes"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - btnLotSelectAll_M.Width
+            - btnLotSelectAll_M:
+                Control: ModernButton@1.0.0
+                Properties:
+                  Align: =Align.Center
+                  FontWeight: =FontWeight.Bold
+                  Height: =24
+                  Italic: =true
+                  Layout: =ButtonLayout.TextOnly
+                  OnSelect: |-
+                    =UpdateContext({vcDemandesEvent:"SetSelection"&Text(Rand())});
+                    UpdateContext({
+                        vcCurrentWizardStep: 2
+                    });
+                  PaddingBottom: =5
+                  PaddingLeft: =5
+                  PaddingRight: =12
+                  PaddingTop: =5
+                  RadiusBottomLeft: =4
+                  RadiusBottomRight: =4
+                  RadiusTopLeft: =4
+                  RadiusTopRight: =4
+                  Size: =12
+                  Text: ="Tout Sélectionner"
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =120
+      - Container7_2:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            FillPortions: =0
+            Height: =50
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =414
+            Y: =40
+          Children:
+            - Text5_6:
+                Control: ModernText@1.0.0
+                Properties:
+                  BorderColor: =App.Theme.Colors.Darker10
+                  BorderStyle: =BorderStyle.Solid
+                  BorderThickness: =0
+                  Color: =If(vcCurrentWizardStep = 2 ,  App.Theme.Colors.Darker10, Color.Silver)
+                  FontWeight: =FontWeight.Bold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =3
+                  PaddingTop: =3
+                  Size: =14
+                  Text: =_Emoji._2 & If(vcCurrentWizardStep > 2 , "✅","")  & " Définir Numéro de Lot"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - inpNumLot_M.Width
+            - inpNumLot_M:
+                Control: ModernTextInput@1.1.2
+                Properties:
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnChange: |-
+                    =If(!IsBlank( Self.Text), // Trigger step progression only after the required input is filled
+                        UpdateContext({
+                            vcCurrentWizardStep:  // Set next step depending on whether the A4-dependent step is applicable (visible or skipped)
+                                If(ctnDateFinConsult_M.Visible,3, 4) 
+                        })
+                    )
+                  Placeholder: ="20**/**"
+                  TriggerOutput: =TriggerOutput.Delayed
+                  Visible: =vcCurrentWizardStep >= 2
+                  Width: =dteDirReaffFinConsul_M.Width
+      - ctnDateFinConsult_M:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            FillPortions: =0
+            Height: =50
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Visible: |+
+              =// Keep the step visible if current selection contains at least one A4
+              // OR after lot creation if the lot included at least one A4
+              Or( 
+                  !IsEmpty(
+                      Filter(dlstDemandes_M.SelectedItems, Rang = "A4")
+                  ),
+                  vcShowDirReaffFinConsul
+              )
+            Width: =414
+            Y: =40
+          Children:
+            - Text5_8:
+                Control: ModernText@1.0.0
+                Properties:
+                  BorderColor: =App.Theme.Colors.Darker10
+                  BorderStyle: =BorderStyle.Solid
+                  BorderThickness: =0
+                  Color: =If(vcCurrentWizardStep= 3 ,  App.Theme.Colors.Darker10, Color.Silver)
+                  FontWeight: =FontWeight.Bold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =3
+                  PaddingTop: =3
+                  Size: =14
+                  Text: =_Emoji._3 & If(vcCurrentWizardStep > 3 , "✅","")  & "Date Fin consultation"
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - inpNumLot_M.Width
+            - dteDirReaffFinConsul_M:
+                Control: ModernDatePicker@1.0.2
+                Properties:
+                  Format: =DatePickerFormat.Short
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  OnChange: |-
+                    =If(!IsBlank( Self.SelectedDate), // Trigger step progression only after the required input is filled
+                        UpdateContext({
+                            vcCurrentWizardStep: 4
+                        })
+                    )
+                  Placeholder: ="Choisir une date"
+                  Visible: =vcCurrentWizardStep >= 3
+                  Width: =150
+      - Container7_4:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            FillPortions: =0
+            Height: =50
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =414
+            Y: =40
+          Children:
+            - btnProcessDoCreateLot_M:
+                Control: ModernButton@1.0.0
+                Properties:
+                  Align: =Align.Left
+                  Appearance: =If(vcCurrentWizardStep = 4 ,    ButtonAppearance.Primary,ButtonAppearance.Outline)
+                  Color: =If(vcCurrentWizardStep= 4 ,  Color.White, Color.Gray)
+                  DisplayMode: =If(vcCurrentWizardStep = 4 ,DisplayMode.Edit, DisplayMode.Disabled)
+                  FontWeight: =FontWeight.Bold
+                  Layout: =ButtonLayout.TextOnly
+                  OnSelect: "=// Create the 'Lot' by updating each selected 'Demande' to its next status (A4 path vs standard path)\nForAll(dlstDemandes_M.SelectedItems,\n    Patch(AIRH_Demandes,\n        ShowColumns( ThisRecord,ID),\n        If(ThisRecord.Rang = \"A4\",\n            // Route 'Demande' through the director reaffectation consultation (with end date)\n            {\n                Lot : inpNumLot_M.Text,\n                'Statut General': _StatutGeneral.DirReaff,\n                'Statut Detail': _StatutDetail.DirReaffConsult,\n                DateDirReaffFinConsult: dteDirReaffFinConsul_M.SelectedDate\n            },\n            // Route 'Demande' through the standard DV validation pipeline\n            {\n                Lot : inpNumLot_M.Text,\n                'Statut General': _StatutGeneral.DACValidation,\n                'Statut Detail': _StatutDetail.DACDVEnPrevision\n            }\n        )\n    )\n);\n\n// Preserve the A4-dependent step after selection reset (lot content drives visibility, not current selection)\nIf(ctnDateFinConsult_M.Visible,\n    UpdateContext({vcShowDirReaffFinConsul: true})\n);\n\n\n// Notify stakeholders that the DV 'Lot' has been created (recipients grouped by SPW)\nWith(\n    {\n        MyDistributionList : // Build the mailing list by expanding each distinct SPW to its distribution emails\n            Concat(\n                ForAll(\n                    Distinct(dlstDemandes_M.SelectedItems,SPW),\n                    { \n                        SPW : ThisRecord.Value,\n                        Emails :  _DFAEmailList(ThisRecord.Value)\n                    }\n                ),\n                Emails,\n                \";\"\n        )\n    },\n    Office365Outlook.SendEmailV2(\n        MyDistributionList,                     // To: SPW distribution lists for impacted 'Demandes'\n        _txtMessage.EmailSubjectPrefix &   \"Constitution Lot DV\",     // Subject: DV lot creation notification\n        // Body: include the A4 consultation deadline only when applicable        \n        \"Bonjour,<br><br>\" &\n        If(! vcShowDirReaffFinConsul,\n            \"Les emplois pour la demande DV ont été sélectionnés. \n            <br>Toute nouvelle demande fera partie d'une demande de DV future\n            \" \n            ,//@Else\n            \"Les emplois pour la demande DV ont été sélectionnés. \n            <br>Toute nouvelle demande fera partie d'une demande de DV future. \n            <br>Les Directeurs en instance de réaffectation peuvent postuler jusqu'au \" & dteDirReaffFinConsul_M.SelectedDate &\". \n            <br>Merci de revenir vers nous après cette date. \n            \"\n        )                \n        & _txtMessage.EmailFooter \n    );\n);\n\n\n// Write one status history entry per updated 'Demande' (same branching rules as the main update)\nPatch(AIRH_Status_History,\n    // Pre-create the required number of history rows\n    ForAll(\n        Sequence(CountRows(dlstDemandes_M.SelectedItems)),\n        Defaults(AIRH_Status_History)\n    ),\n    // Fill each history row with the status change details\n    ForAll(\n        dlstDemandes_M.SelectedItems,\n        {\n\n            Titre:          ThisRecord.NumEmploi,\n            ID_Demande:     ThisRecord.ID,\n            StatutGeneral:  If(ThisRecord.Rang = \"A4\",_StatutGeneral.DirReaff, _StatutGeneral.DACValidation),\n            StatutDetail:  If(ThisRecord.Rang = \"A4\",_StatutDetail.DirReaffConsult, _StatutDetail.DACDVEnPrevision),\n            Acteur:         _Acteur.DAC.Key\n        }\n    )\n);\n        \n// Reload UI data to reflect the newly created 'Lot'\nSelect(BtnLoadDemandes_M);\n\n// Advance the wizard to the confirmation/next stage\nUpdateContext({\n    vcCurrentWizardStep: 5,\n    vcApplyFilter:_FilterToApply.LotCreationCompleted\n})"
+                  PaddingBottom: =5
+                  PaddingLeft: =5
+                  PaddingRight: =12
+                  PaddingTop: =5
+                  RadiusBottomLeft: =4
+                  RadiusBottomRight: =4
+                  RadiusTopLeft: =4
+                  RadiusTopRight: =4
+                  Size: =14
+                  Text: =If(ctnDateFinConsult_M.Visible, _Emoji._4 , _Emoji._5) & If(vcCurrentWizardStep > 4 , "✅","")  & " Constituer le lot"
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+      - Container7_5:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            FillPortions: =0
+            Height: =50
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =414
+            Y: =40
+          Children:
+            - btnLotCancel_M:
+                Control: ModernButton@1.0.0
+                Properties:
+                  Align: =Align.Left
+                  FontWeight: =FontWeight.Bold
+                  Layout: =ButtonLayout.TextOnly
+                  OnSelect: |-
+                    =Select(btnStopProcess_M);
+
+                    /*
+
+                    Select(btnGridClearSelect_M);; // Reset de la selection
+                    UpdateContext({
+                        vcCurrentProcess:Blank();
+                        vcCurrentWizardStep: Blank();
+                        vcApplyFilter : Blank()
+                    });;
+                    */
+                  PaddingBottom: =5
+                  PaddingLeft: =5
+                  PaddingRight: =12
+                  PaddingTop: =5
+                  RadiusBottomLeft: =4
+                  RadiusBottomRight: =4
+                  RadiusTopLeft: =4
+                  RadiusTopRight: =4
+                  Size: =14
+                  Text: =If(vcCurrentWizardStep = 5, "Terminer","Annuler")
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
