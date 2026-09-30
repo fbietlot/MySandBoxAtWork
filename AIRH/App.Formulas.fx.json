@@ -316,9 +316,9 @@ Principe :
 
 Eléments principaux :
     - _ProcessStepMain              : macro-étapes du parcours
-    - _ProcessStepKey_V2           : identifiants des étapes métier
-    - _ProcessStepMainConfigTable_V2 : configuration des macro-étapes
-    - _ProcessStepConfigTable_V2   : configuration détaillée des étapes
+    - _ProcessStepKey           : identifiants des étapes métier
+    - _ProcessStepMainConfigTable : configuration des macro-étapes
+    - _ProcessStepConfigTable   : configuration détaillée des étapes
 
 Utilisations :
     - affichage du Subway de progression ;
@@ -344,18 +344,18 @@ _ProcessStepMain
 _ProcessStepMain = _StatutGeneral;;
 
 /*-----------------------------------------------------------------------------
-_ProcessStepKey_V2
+_ProcessStepKey
     Rôle :
         Enumération canonique des étapes métier.
     Utilisation :
         - identifiant stable des étapes ;
         - référentiel utilisé par _StatutConfigTable ;
-        - clé de recherche dans _ProcessStepConfigTable_V2 ;
+        - clé de recherche dans _ProcessStepConfigTable ;
         - historisation des étapes traversées.
     Convention :
         1 clé = 1 étape métier.
 -----------------------------------------------------------------------------*/
-_ProcessStepKey_V2 = {
+_ProcessStepKey = {
     // 10 - Demande
     InitDemande         : "InitDemande";
     EnvoiDAC            : "EnvoiDAC";
@@ -397,7 +397,7 @@ _ProcessStepKey_V2 = {
 };;
 
 /*--------------------------------*----------------------------------*---------
-_ProcessStepMainConfigTable_V2
+_ProcessStepMainConfigTable
     Rôle :
         Configuration de macro-étapes de processus.
     Utilisation :
@@ -408,7 +408,7 @@ _ProcessStepMainConfigTable_V2
         - MainStep
         - MainStepOrder
 -----------------------------------------------------------------------------*/
-_ProcessStepMainConfigTable_V2 =
+_ProcessStepMainConfigTable =
     Table(
         {
             MainStep : _ProcessStepMain.Demande;
@@ -441,7 +441,7 @@ _ProcessStepMainConfigTable_V2 =
     );;
 
 /*-----------------------------------------------------------------------------
-_ProcessStepConfigTable_V2
+_ProcessStepConfigTable
     Rôle :
         Configuration canonique des étapes métier utilisées pour afficher la progression d'une demande dans l'écran de détail.
         Cette table représente la source de vérité du parcours utilisateur.
@@ -474,162 +474,162 @@ _ProcessStepConfigTable_V2
             Ordre de l'étape d'origine de la clôture.
             Permet de positionner correctement une clôture dans la progression globale.
     Convention :
-        Chaque clé déclarée dans _ProcessStepKey_V2 doit posséder exactement un enregistrement dans _ProcessStepConfigTable_V2.
+        Chaque clé déclarée dans _ProcessStepKey doit posséder exactement un enregistrement dans _ProcessStepConfigTable.
 -----------------------------------------------------------------------------*/
-_ProcessStepConfigTable_V2 =
+_ProcessStepConfigTable =
     With(
         {MySteps :
             Table(
                 {
-                    Key : _ProcessStepKey_V2.InitDemande;
+                    Key : _ProcessStepKey.InitDemande;
                     Text : "Initialisation de la demande";
                     MainStep : _ProcessStepMain.Demande;
                     StepOrder : 1010
                 };
                 {
-                    Key : _ProcessStepKey_V2.EnvoiDAC;
+                    Key : _ProcessStepKey.EnvoiDAC;
                     Text : "Envoi à la DAC";
                     MainStep : _ProcessStepMain.Demande;
                     StepOrder : 1020
                 };
                 {
-                    Key : _ProcessStepKey_V2.ValidationDAC;
+                    Key : _ProcessStepKey.ValidationDAC;
                     Text : "Validation de la demande par la DAC";
                     MainStep : _ProcessStepMain.DACValidation;
                     StepOrder : 2010
                 };
                 {
-                    Key : _ProcessStepKey_V2.ConstitutionLot;
+                    Key : _ProcessStepKey.ConstitutionLot;
                     Text : "Constitution du lot";
                     MainStep : _ProcessStepMain.DACValidation;
                     StepOrder : 2020
                 };
                 {
-                    Key : _ProcessStepKey_V2.DirReaffReception;
+                    Key : _ProcessStepKey.DirReaffReception;
                     Text : "Réception des candidatures";
                     MainStep : _ProcessStepMain.DirReaff;
                     StepOrder : 3010
                 };
                 {
-                    Key : _ProcessStepKey_V2.DirReaffAuditCODI;
+                    Key : _ProcessStepKey.DirReaffAuditCODI;
                     Text : "Audition des candidatures par le CODI";
                     MainStep : _ProcessStepMain.DirReaff;
                     StepOrder : 3020
                 };
                 {
-                    Key : _ProcessStepKey_V2.EnvoiNoteGW;
+                    Key : _ProcessStepKey.EnvoiNoteGW;
                     Text : "Envoi de la note au GW";
                     MainStep : _ProcessStepMain.NGWProcessusNGW_DV;
                     StepOrder : 4010
                 };
                 {
-                    Key : _ProcessStepKey_V2.NoteDecisionCOSTRA;
+                    Key : _ProcessStepKey.NoteDecisionCOSTRA;
                     Text : "Réception de la décision du COSTRA";
                     MainStep : _ProcessStepMain.NGWProcessusNGW_DV;
                     StepOrder : 4020
                 };
                 {
-                    Key : _ProcessStepKey_V2.NoteDecisionGW;
+                    Key : _ProcessStepKey.NoteDecisionGW;
                     Text : "Réception de la décision du GW";
                     MainStep : _ProcessStepMain.NGWProcessusNGW_DV;
                     StepOrder : 4030
                 };
                 {
-                    Key : _ProcessStepKey_V2.CandAppel;
+                    Key : _ProcessStepKey.CandAppel;
                     Text : "Appel à candidatures";
                     MainStep : _ProcessStepMain.Candidatures;
                     StepOrder : 5010
                 };
                 {
-                    Key : _ProcessStepKey_V2.CandAnalyse;
+                    Key : _ProcessStepKey.CandAnalyse;
                     Text : "Analyse des candidatures";
                     MainStep : _ProcessStepMain.Candidatures;
                     StepOrder : 5020
                 };
                 {
-                    Key : _ProcessStepKey_V2.CandEnvoiDFA;
+                    Key : _ProcessStepKey.CandEnvoiDFA;
                     Text : "Envoi des candidatures à la DFA";
                     MainStep : _ProcessStepMain.Candidatures;
                     StepOrder : 5030
                 };
                 {
-                    Key : _ProcessStepKey_V2.CandFixAuditions;
+                    Key : _ProcessStepKey.CandFixAuditions;
                     Text : "Fixation des dates d'audition";
                     MainStep : _ProcessStepMain.Candidatures;
                     StepOrder : 5040
                 };
                 {
-                    Key : _ProcessStepKey_V2.CandDecisionCODI;
+                    Key : _ProcessStepKey.CandDecisionCODI;
                     Text : "Réception de la décision du CODI";
                     MainStep : _ProcessStepMain.Candidatures;
                     StepOrder : 5050
                 };
                 {
-                    Key : _ProcessStepKey_V2.ArreteRedaction;
+                    Key : _ProcessStepKey.ArreteRedaction;
                     Text : "Rédaction de l'arrêté ou de la note";
                     MainStep : _ProcessStepMain.Promotion;
                     StepOrder : 6010
                 };
                 {
-                    Key : _ProcessStepKey_V2.ArreteEnvoiGWDG;
+                    Key : _ProcessStepKey.ArreteEnvoiGWDG;
                     Text : "Envoi de l'arrêté ou de la note à l'autorité";
                     MainStep : _ProcessStepMain.Promotion;
                     StepOrder : 6020
                 };
                 {
-                    Key : _ProcessStepKey_V2.ArreteDecision;
+                    Key : _ProcessStepKey.ArreteDecision;
                     Text : "Réception de la décision de l'autorité";
                     MainStep : _ProcessStepMain.Promotion;
                     StepOrder : 6030
                 };
                 {
-                    Key : _ProcessStepKey_V2.ClotDirReaffCODI;
+                    Key : _ProcessStepKey.ClotDirReaffCODI;
                     Text : _StatutDetail.DirReaffCODI;
                     MainStep : _ProcessStepMain.Cloture;
                     StepOrder : 9010;
-                    ClosedFromStepKey : _ProcessStepKey_V2.DirReaffAuditCODI
+                    ClosedFromStepKey : _ProcessStepKey.DirReaffAuditCODI
                 };
                 {
-                    Key : _ProcessStepKey_V2.ClotCostraRefusee;
+                    Key : _ProcessStepKey.ClotCostraRefusee;
                     Text : _StatutDetail.COSTRARefusee;
                     MainStep : _ProcessStepMain.Cloture;
                     StepOrder : 9020;
-                    ClosedFromStepKey : _ProcessStepKey_V2.NoteDecisionCOSTRA
+                    ClosedFromStepKey : _ProcessStepKey.NoteDecisionCOSTRA
                 };
                 {
-                    Key : _ProcessStepKey_V2.ClotGWRefusee;
+                    Key : _ProcessStepKey.ClotGWRefusee;
                     Text : _StatutDetail.GWRefusee;
                     MainStep : _ProcessStepMain.Cloture;
                     StepOrder : 9030;
-                    ClosedFromStepKey : _ProcessStepKey_V2.NoteDecisionGW
+                    ClosedFromStepKey : _ProcessStepKey.NoteDecisionGW
                 };
                 {
-                    Key : _ProcessStepKey_V2.ClotPostePourvu;
+                    Key : _ProcessStepKey.ClotPostePourvu;
                     Text : _StatutDetail.PostePourvu;
                     MainStep : _ProcessStepMain.Cloture;
                     StepOrder : 9040;
-                    ClosedFromStepKey : _ProcessStepKey_V2.CandDecisionCODI
+                    ClosedFromStepKey : _ProcessStepKey.CandDecisionCODI
                 };
                 {
-                    Key : _ProcessStepKey_V2.ClotPosteNonPourvu;
+                    Key : _ProcessStepKey.ClotPosteNonPourvu;
                     Text : _StatutDetail.PosteNonPourvu;
                     MainStep : _ProcessStepMain.Cloture;
                     StepOrder : 9050;
-                    ClosedFromStepKey : _ProcessStepKey_V2.CandDecisionCODI
+                    ClosedFromStepKey : _ProcessStepKey.CandDecisionCODI
                 };
                 {
-                    Key : _ProcessStepKey_V2.ClotPromRefuseeGW;
+                    Key : _ProcessStepKey.ClotPromRefuseeGW;
                     Text : _StatutDetail.PromRefuseeGW;
                     MainStep : _ProcessStepMain.Cloture;
                     StepOrder : 9060;
-                    ClosedFromStepKey : _ProcessStepKey_V2.ArreteEnvoiGWDG
+                    ClosedFromStepKey : _ProcessStepKey.ArreteEnvoiGWDG
                 }
             )
         };
         AddColumns(MySteps As MyCurrentStep;
             MainStepOrder;
                 LookUp(
-                    _ProcessStepMainConfigTable_V2;
+                    _ProcessStepMainConfigTable;
                     MainStep = MyCurrentStep.MainStep
                 ).MainStepOrder
             ;
@@ -642,7 +642,7 @@ _ProcessStepConfigTable_V2 =
     );;
 
 /*----------------------------------*----------------------------------*-------
-_StatutDetailKey
+_StatusDetailKey
     Rôle :
         Catalogue des identifiants techniques des statuts.
     Convention :
@@ -652,7 +652,7 @@ _StatutDetailKey
                 DACValidee_DV
                 DACValidee_FF
 -----------------------------------------------------------------------------*/
-_StatutDetailKey = {
+_StatusDetailKey = {
     //"Formulaire de demande"
     DemandeNew:         "DemandeNew";
     DemandeBrouillon:   "DemandeBrouillon";
@@ -762,11 +762,11 @@ _StatutConfigTable
         - progression métier ;
         - association aux étapes du processus.
     Eléments principaux :
-        - StatutKey
+        - StatusKey
         - StatutDetail
         - StatutGeneral
         - ProcessStep
-        - ProcessStepKey_V2
+        - ProcessStepKey
         - ActionOwner
         - DocumentCategory
         - Actions
@@ -774,10 +774,10 @@ _StatutConfigTable
     Attributs calculés :
         - StatutGeneral_SortOrder
         - StatutProgressBar
-        - ProcessStep_V2
-    Migration V2 :
+        - ProcessStep
+    Migration :
         ProcessStep est conservé pour compatibilité.
-        ProcessStep_V2 est résolu automatiquement via ProcessStepKey_V2 et _ProcessStepConfigTable_V2.
+        ProcessStep est résolu automatiquement via ProcessStepKey et _ProcessStepConfigTable.
 -----------------------------------------------------------------------------*/
 _StatutConfigTable =
 // StatutDetail is considered as unique identifier (key)
@@ -785,11 +785,11 @@ AddColumns(
     Table(
         // 10 — Formulaire de demande
         {
-            StatutKey:          _StatutDetailKey.DemandeNew;
+            StatusKey:          _StatusDetailKey.DemandeNew;
             StatutDetail:       _StatutDetail.DemandeNew;
             StatutGeneral:      _StatutGeneral.Demande;
             //ProcessStep:        _ProcessStepDetail.InitDemande;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.InitDemande;
+            ProcessStepKey:  _ProcessStepKey.InitDemande;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     false;
             LinkedTypeDemande:  [];
@@ -809,11 +809,11 @@ AddColumns(
             StatutDetail_SortOrder: 5
         };
         {
-            StatutKey:          _StatutDetailKey.DemandeBrouillon;
+            StatusKey:          _StatusDetailKey.DemandeBrouillon;
             StatutDetail:       _StatutDetail.DemandeBrouillon;
             StatutGeneral:      _StatutGeneral.Demande;
             //ProcessStep:        _ProcessStepDetail.InitDemande;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.InitDemande;
+            ProcessStepKey:  _ProcessStepKey.InitDemande;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [];
@@ -838,11 +838,11 @@ AddColumns(
             StatutDetail_SortOrder: 10
         };
         {
-            StatutKey:          _StatutDetailKey.DemandeBrouillonFin;
+            StatusKey:          _StatusDetailKey.DemandeBrouillonFin;
             StatutDetail:       _StatutDetail.DemandeBrouillonFin;
             StatutGeneral:      _StatutGeneral.Demande;
             //ProcessStep:        _ProcessStepDetail.InitDemande;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.InitDemande;
+            ProcessStepKey:  _ProcessStepKey.InitDemande;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [];
@@ -867,11 +867,11 @@ AddColumns(
             StatutDetail_SortOrder: 10
         };
         {
-            StatutKey:          _StatutDetailKey.DemandeEnCours;
+            StatusKey:          _StatusDetailKey.DemandeEnCours;
             StatutDetail:       _StatutDetail.DemandeEnCours;
             StatutGeneral:      _StatutGeneral.Demande;
             //ProcessStep:        _ProcessStepDetail.EnvoiDAC;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.EnvoiDAC;
+            ProcessStepKey:  _ProcessStepKey.EnvoiDAC;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
             LinkedTypeDemande:  [];
@@ -894,11 +894,11 @@ AddColumns(
 
         // 20 — Validation de la demande par la DAC
         {
-            StatutKey:          _StatutDetailKey.DACRefusee;
+            StatusKey:          _StatusDetailKey.DACRefusee;
             StatutDetail:       _StatutDetail.DACRefusee;
             StatutGeneral:      _StatutGeneral.Demande;
             //ProcessStep:        _ProcessStepDetail.InitDemande;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.InitDemande;
+            ProcessStepKey:  _ProcessStepKey.InitDemande;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [];
@@ -925,11 +925,11 @@ AddColumns(
             StatutDetail_SortOrder: 10
         };
         {
-            StatutKey:          _StatutDetailKey.DACValidee;
+            StatusKey:          _StatusDetailKey.DACValidee;
             StatutDetail:       _StatutDetail.DACValidee;
             StatutGeneral:      _StatutGeneral.DACValidation;
             //ProcessStep:        _ProcessStepDetail.ValidationDAC;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ValidationDAC;
+            ProcessStepKey:  _ProcessStepKey.ValidationDAC;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [];
@@ -942,11 +942,11 @@ AddColumns(
             StatutDetail_SortOrder: 10
         };
         {
-            StatutKey:          _StatutDetailKey.DACDVEnPrevision;
+            StatusKey:          _StatusDetailKey.DACDVEnPrevision;
             StatutDetail:       _StatutDetail.DACDVEnPrevision;
             StatutGeneral:      _StatutGeneral.DACValidation;
             //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ConstitutionLot;
+            ProcessStepKey:  _ProcessStepKey.ConstitutionLot;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -963,11 +963,11 @@ AddColumns(
 
         // 30 — Directeurs en instance de réaffectation
         {
-            StatutKey:          _StatutDetailKey.DirReaffConsult;
+            StatusKey:          _StatusDetailKey.DirReaffConsult;
             StatutDetail:       _StatutDetail.DirReaffConsult;
             StatutGeneral:      _StatutGeneral.DirReaff;
             //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ConstitutionLot;
+            ProcessStepKey:  _ProcessStepKey.ConstitutionLot;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -984,11 +984,11 @@ AddColumns(
         };
         {
             // REM : Statut assigné automatiquement à échéance via Power Automate
-            StatutKey:          _StatutDetailKey.DirReaffFinConsult;
+            StatusKey:          _StatusDetailKey.DirReaffFinConsult;
             StatutDetail:       _StatutDetail.DirReaffFinConsult;
             StatutGeneral:      _StatutGeneral.DirReaff;
             //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ConstitutionLot;
+            ProcessStepKey:  _ProcessStepKey.ConstitutionLot;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1004,11 +1004,11 @@ AddColumns(
             StatutDetail_SortOrder: 15
         };
         {
-            StatutKey:          _StatutDetailKey.DirReaffPasCandid;
+            StatusKey:          _StatusDetailKey.DirReaffPasCandid;
             StatutDetail:       _StatutDetail.DirReaffPasCandid;
             StatutGeneral:      _StatutGeneral.DirReaff;
             //ProcessStep:        _ProcessStepDetail.DirReaffReception;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.DirReaffReception;
+            ProcessStepKey:  _ProcessStepKey.DirReaffReception;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1024,11 +1024,11 @@ AddColumns(
             StatutDetail_SortOrder: 20
         };
         {
-            StatutKey:          _StatutDetailKey.DirReaffAuditCODI;
+            StatusKey:          _StatusDetailKey.DirReaffAuditCODI;
             StatutDetail:       _StatutDetail.DirReaffAuditCODI;
             StatutGeneral:      _StatutGeneral.DirReaff;
             //ProcessStep:        _ProcessStepDetail.DirReaffReception;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.DirReaffReception;
+            ProcessStepKey:  _ProcessStepKey.DirReaffReception;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1053,11 +1053,11 @@ AddColumns(
             StatutDetail_SortOrder: 30
         };
         {
-            StatutKey:          _StatutDetailKey.DirReaffPasReaff;
+            StatusKey:          _StatusDetailKey.DirReaffPasReaff;
             StatutDetail:       _StatutDetail.DirReaffPasReaff;
             StatutGeneral:      _StatutGeneral.DirReaff;
             //ProcessStep:        _ProcessStepDetail.DirReaffAuditCODI;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.DirReaffAuditCODI;
+            ProcessStepKey:  _ProcessStepKey.DirReaffAuditCODI;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1075,11 +1075,11 @@ AddColumns(
 
         // 40 — Processus NGW pour DV
         {
-            StatutKey:          _StatutDetailKey.NGWCOSTRADemande;
+            StatusKey:          _StatusDetailKey.NGWCOSTRADemande;
             StatutDetail:       _StatutDetail.NGWCOSTRADemande;
             StatutGeneral:      _StatutGeneral.NGWProcessusNGW_DV;
             //ProcessStep:        _ProcessStepDetail.EnvoiNoteGW;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.EnvoiNoteGW;
+            ProcessStepKey:  _ProcessStepKey.EnvoiNoteGW;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1102,11 +1102,11 @@ AddColumns(
             StatutDetail_SortOrder: 10
         };
         {
-            StatutKey:          _StatutDetailKey.NGWAuGW;
+            StatusKey:          _StatusDetailKey.NGWAuGW;
             StatutDetail:       _StatutDetail.NGWAuGW;
             StatutGeneral:      _StatutGeneral.NGWProcessusNGW_DV;
             //ProcessStep:        _ProcessStepDetail.NoteDecisionCOSTRA;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.NoteDecisionCOSTRA;
+            ProcessStepKey:  _ProcessStepKey.NoteDecisionCOSTRA;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1126,11 +1126,11 @@ AddColumns(
             StatutDetail_SortOrder: 20
         };
         {
-            StatutKey:          _StatutDetailKey.NGWGWDVValidee;
+            StatusKey:          _StatusDetailKey.NGWGWDVValidee;
             StatutDetail:       _StatutDetail.NGWGWDVValidee;
             StatutGeneral:      _StatutGeneral.NGWProcessusNGW_DV;
             //ProcessStep:        _ProcessStepDetail.NoteDecisionGW;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.NoteDecisionGW;
+            ProcessStepKey:  _ProcessStepKey.NoteDecisionGW;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1149,11 +1149,11 @@ AddColumns(
 
         // 50 — Candidatures
         {
-            StatutKey:          _StatutDetailKey.CandidAppelEnCours;
+            StatusKey:          _StatusDetailKey.CandidAppelEnCours;
             StatutDetail:       _StatutDetail.CandidAppelEnCours;
             StatutGeneral:      _StatutGeneral.Candidatures;
             //ProcessStep:        _ProcessStepDetail.CandAppel;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.CandAppel;
+            ProcessStepKey:  _ProcessStepKey.CandAppel;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1174,11 +1174,11 @@ AddColumns(
         };
         {
             // REM : Statut assigné automatiquement à échéance via Power Automate
-            StatutKey:          _StatutDetailKey.CandidAnalyse;
+            StatusKey:          _StatusDetailKey.CandidAnalyse;
             StatutDetail:       _StatutDetail.CandidAnalyse;
             StatutGeneral:      _StatutGeneral.Candidatures;
             //ProcessStep:        _ProcessStepDetail.CandAnalyse;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.CandAnalyse;
+            ProcessStepKey:  _ProcessStepKey.CandAnalyse;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1196,11 +1196,11 @@ AddColumns(
             StatutDetail_SortOrder: 20
         };
         {
-            StatutKey:          _StatutDetailKey.CandidDFA;
+            StatusKey:          _StatusDetailKey.CandidDFA;
             StatutDetail:       _StatutDetail.CandidDFA;
             StatutGeneral:      _StatutGeneral.Candidatures;
             //ProcessStep:        _ProcessStepDetail.CandEnvoiDFA;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.CandEnvoiDFA;
+            ProcessStepKey:  _ProcessStepKey.CandEnvoiDFA;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1218,11 +1218,11 @@ AddColumns(
             StatutDetail_SortOrder: 30
         };
         {
-            StatutKey:          _StatutDetailKey.CandidPVEnCours;
+            StatusKey:          _StatusDetailKey.CandidPVEnCours;
             StatutDetail:       _StatutDetail.CandidPVEnCours;
             StatutGeneral:      _StatutGeneral.Candidatures;
             //ProcessStep:        _ProcessStepDetail.CandFixAuditions;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.CandFixAuditions;
+            ProcessStepKey:  _ProcessStepKey.CandFixAuditions;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1247,11 +1247,11 @@ AddColumns(
             StatutDetail_SortOrder: 40
         };
         {
-            StatutKey:          _StatutDetailKey.CandidPVTermines;
+            StatusKey:          _StatusDetailKey.CandidPVTermines;
             StatutDetail:       _StatutDetail.CandidPVTermines;
             StatutGeneral:      _StatutGeneral.Candidatures;
             //ProcessStep:        _ProcessStepDetail.CandDecisionCODI;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.CandDecisionCODI;
+            ProcessStepKey:  _ProcessStepKey.CandDecisionCODI;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1272,11 +1272,11 @@ AddColumns(
 
         // 60 — Processus de promotion
         {
-            StatutKey:          _StatutDetailKey.PromRedaction;
+            StatusKey:          _StatusDetailKey.PromRedaction;
             StatutDetail:       _StatutDetail.PromRedaction;
             StatutGeneral:      _StatutGeneral.Promotion;
             //ProcessStep:        _ProcessStepDetail.ArreteRedaction;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ArreteRedaction;
+            ProcessStepKey:  _ProcessStepKey.ArreteRedaction;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1294,11 +1294,11 @@ AddColumns(
             StatutDetail_SortOrder: 60
         };
         {
-            StatutKey:          _StatutDetailKey.PromAuGWDG;
+            StatusKey:          _StatusDetailKey.PromAuGWDG;
             StatutDetail:       _StatutDetail.PromAuGWDG;
             StatutGeneral:      _StatutGeneral.Promotion;
             //ProcessStep:        _ProcessStepDetail.ArreteEnvoiGWDG;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ArreteEnvoiGWDG;
+            ProcessStepKey:  _ProcessStepKey.ArreteEnvoiGWDG;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1327,11 +1327,11 @@ AddColumns(
             StatutDetail_SortOrder: 70
         };
         {
-            StatutKey:          _StatutDetailKey.PromSignes;
+            StatusKey:          _StatusDetailKey.PromSignes;
             StatutDetail:       _StatutDetail.PromSignes;
             StatutGeneral:      _StatutGeneral.Cloture;
             //ProcessStep:        _ProcessStepDetail.ArreteDecision;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ArreteDecision;
+            ProcessStepKey:  _ProcessStepKey.ArreteDecision;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1346,11 +1346,11 @@ AddColumns(
 
         // 90 — Clôturé (statuts terminaux)
         {
-            StatutKey:          _StatutDetailKey.DirReaffCODI;
+            StatusKey:          _StatusDetailKey.DirReaffCODI;
             StatutDetail:       _StatutDetail.DirReaffCODI;
             StatutGeneral:      _StatutGeneral.Cloture;
             //ProcessStep:        _ProcessStepDetail.ClotDirReaffCODI;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotDirReaffCODI;
+            ProcessStepKey:  _ProcessStepKey.ClotDirReaffCODI;
             ActionOwner:        Blank();
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1371,11 +1371,11 @@ AddColumns(
             StatutDetail_SortOrder: 10
         };
         {
-            StatutKey:          _StatutDetailKey.COSTRARefusee;
+            StatusKey:          _StatusDetailKey.COSTRARefusee;
             StatutDetail:       _StatutDetail.COSTRARefusee;
             StatutGeneral:      _StatutGeneral.Cloture;
             //ProcessStep:        _ProcessStepDetail.Cloture;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotCostraRefusee;
+            ProcessStepKey:  _ProcessStepKey.ClotCostraRefusee;
             ActionOwner:        Blank();
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1397,11 +1397,11 @@ AddColumns(
             StatutDetail_SortOrder: 20
         };
         {
-            StatutKey:          _StatutDetailKey.GWRefusee;
+            StatusKey:          _StatusDetailKey.GWRefusee;
             StatutDetail:       _StatutDetail.GWRefusee;
             StatutGeneral:      _StatutGeneral.Cloture;
             //ProcessStep:        _ProcessStepDetail.Cloture;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotGWRefusee;
+            ProcessStepKey:  _ProcessStepKey.ClotGWRefusee;
             ActionOwner:        Blank();
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1423,11 +1423,11 @@ AddColumns(
             StatutDetail_SortOrder: 30
         };
         {
-            StatutKey:          _StatutDetailKey.PostePourvu;
+            StatusKey:          _StatusDetailKey.PostePourvu;
             StatutDetail:       _StatutDetail.PostePourvu;
             StatutGeneral:      _StatutGeneral.Cloture;
             //ProcessStep:        _ProcessStepDetail.Cloture;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotPostePourvu;
+            ProcessStepKey:  _ProcessStepKey.ClotPostePourvu;
             ActionOwner:        Blank();
             LinkedTypeDemande:  [
                                     _TypeDemande.DemandeDV
@@ -1435,11 +1435,11 @@ AddColumns(
             StatutDetail_SortOrder: Blank()
         };
         {
-            StatutKey:          _StatutDetailKey.PosteNonPourvu;
+            StatusKey:          _StatusDetailKey.PosteNonPourvu;
             StatutDetail:       _StatutDetail.PosteNonPourvu;
             StatutGeneral:      _StatutGeneral.Cloture;
             //ProcessStep:        _ProcessStepDetail.Cloture;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotPosteNonPourvu;
+            ProcessStepKey:  _ProcessStepKey.ClotPosteNonPourvu;
             ActionOwner:        Blank();
             LinkedTypeDemande:  [
                                     _TypeDemande.DemandeDV
@@ -1447,11 +1447,11 @@ AddColumns(
             StatutDetail_SortOrder: Blank()
         };
         {
-            StatutKey:          _StatutDetailKey.PromRefuseeGW;
+            StatusKey:          _StatusDetailKey.PromRefuseeGW;
             StatutDetail:       _StatutDetail.PromRefuseeGW;
             StatutGeneral:      _StatutGeneral.Cloture;
             //ProcessStep:        _ProcessStepDetail.Cloture;
-            ProcessStepKey_V2:  _ProcessStepKey_V2.ClotPromRefuseeGW;
+            ProcessStepKey:  _ProcessStepKey.ClotPromRefuseeGW;
             ActionOwner:        Blank();
             LinkedTypeDemande:  [
                                     _TypeDemande.DemandeDV
@@ -1498,10 +1498,10 @@ AddColumns(
             "▱▱▱▱▱▱▱"
         );
 
-    ProcessStep_V2;
+    ProcessStep;
         LookUp(
-            _ProcessStepConfigTable_V2;
-            Key = ProcessStepKey_V2
+            _ProcessStepConfigTable;
+            Key = ProcessStepKey
         )
 );;
 /*######### CONFIGURATION : FieldCatalog pour les "Demandes" #######################################
@@ -1558,7 +1558,7 @@ _Decision = {
 
 // Défini le catalogue de colonnes par défaut pour la table 'Demandes' (libellés, largeurs, ordre et visibilité par rôle)
 // Sert de base pour la propriété columns_Items du contrôle FluentDetailsList
-_tblDemandesFieldCatalog_V2 = [
+_tblDemandesFieldCatalog = [
     {ColName : _DemandesFieldName.ID;   ColDisplayName:"#";
         ColWidth : 50;     ColResizable : false;
         ColSortable : true       
@@ -1817,7 +1817,8 @@ _TypeIDList:= Type ([{ID : Number; NumEmploi : Text}]);;
 
 fxLogStatusHistory(
     Myitems : _TypeIDList;
-    MyStatut : _TypeStatut;
+    //MyStatut : _TypeStatut;
+    MyStatusKey_V2 : Text;
     MyActeur : Text
 ): Void =
 {
@@ -1825,8 +1826,11 @@ fxLogStatusHistory(
         {
             // Recherche de la configuration canonique du statut.
             // Permet de récupérer l'étape métier associée sans dupliquer le mapping dans les traitements.
-            MyStatutConfig :
+            /*MyStatutConfig :
                 LookUp(_StatutConfigTable;StatutDetail = MyStatut.Detail
+                );*/
+            MyStatutConfig_V2:
+                LookUp(_StatutConfigTable;StatusKey = MyStatusKey_V2
                 )
         };
         Patch(AIRH_Status_History;
@@ -1841,11 +1845,11 @@ fxLogStatusHistory(
                 {
                     Titre:              ThisRecord.NumEmploi;
                     ID_Demande:         ThisRecord.ID;
-                    StatutGeneral:      MyStatut.General;
-                    StatutDetail:       MyStatut.Detail;
+                    StatutGeneral:      MyStatutConfig_V2.StatutGeneral;
+                    StatutDetail:       MyStatutConfig_V2.StatutDetail;
                     // Historisation de l'étape métier telle qu'elle était définie lors du changement de statut.
-                    ProcessStepKey:     MyStatutConfig.ProcessStep_V2.Key;
-                    ProcessStepText:    MyStatutConfig.ProcessStep_V2.Text;
+                    ProcessStepKey:     MyStatutConfig_V2.ProcessStep.Key;
+                    ProcessStepText:    MyStatutConfig_V2.ProcessStep.Text;
                     Acteur:             MyActeur
                 }
             )
