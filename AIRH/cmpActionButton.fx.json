@@ -1,0 +1,187 @@
+ComponentDefinitions:
+  cmpActionButton:
+    DefinitionType: CanvasComponent
+    CustomProperties:
+      AccessibleLabel:
+        PropertyKind: Input
+        DisplayName: AccessibleLabel
+        Description: Fournit une description explicite de l’action aux technologies d’assistance.
+        DataType: Text
+        Default: '=Blank() '
+      Action:
+        PropertyKind: Input
+        DisplayName: Action prédéfinie à exécuter
+        Description: Code d'une action prédéfinie et configurée dans App.Formulas à e éxécuter
+        DataType: Text
+        Default: =Blank()
+      ActionState:
+        PropertyKind: Input
+        DisplayName: État métier de l'action
+        Description: "Détermine l'état métier courant de l'action. ## Available → l'action peut être exécutée | Applied → Cette action est déjà sélectionnée/active  | Unavailable → l'action ne peut pas être exécutée ## Cet état pilote automatiquement l'apparence du bouton et le comportement exécuté lors de sa sélection."
+        DataType: Text
+        Default: |-
+          =If(
+              false, // Condition à implémenter ici lorsque l'action est déjà active ou appliquée
+              Self.StateValues.Applied,
+
+              If(
+                  true, // Condition métier à implémenter ici pour autoriser l'exécution de l'action
+                  Self.StateValues.Available,
+                  Self.StateValues.Unavailable
+              )
+          )
+
+          /* Valeurs possibles
+              Available :
+                  L’action peut être exécutée.
+              Applied :
+                  L’action est déjà en cours ou active.
+              Unavailable :
+                  L’action ne peut pas être exécutée.
+          */
+      BasePaletteColor:
+        PropertyKind: Input
+        DisplayName: Couleur principale
+        Description: Définit la couleur de référence utilisée pour l’apparence du bouton.
+        DataType: Color
+        Default: =RGBA(141, 229, 250, 1)
+      EligibleItemsCount:
+        PropertyKind: Input
+        DisplayName: Nombre d'éléments éligibles
+        Description: Indique le nombre d'éléments actuellement dans un état compatible avec l'action. Cette information peut être utilisée pour adapter le comportement ou informer l'utilisateur du périmètre concerné par l'action.
+        DataType: Number
+        Default: =Blank()
+      Icon:
+        PropertyKind: Input
+        DisplayName: Icône
+        Description: Définit l’icône affichée dans le bouton.
+        DataType: Text
+        Default: ="DismissCircle"
+      InteractionEnabled:
+        PropertyKind: Input
+        DisplayName: Interaction autorisée
+        Description: Détermine si le bouton peut techniquement recevoir une interaction, indépendamment de l’état métier de l’action.
+        DataType: Boolean
+        Default: =true
+      NextStatus:
+        PropertyKind: Input
+        DisplayName: Statut suivant
+        Description: Propriété personnalisée
+        DataType: Text
+        Default: =Blank()
+      OnApplied:
+        PropertyKind: Event
+        DisplayName: OnApplied
+        Description: Définit le comportement exécuté lorsque l’action est déjà en cours ou active.
+        ReturnType: None
+        Default: |-
+          =Notify(
+              "Cette action est déjà en cours ou active.",
+              NotificationType.Information,
+              2000
+          )
+      OnAvailable:
+        PropertyKind: Event
+        DisplayName: OnAvailable
+        Description: Définit le comportement exécuté lorsque l’action est disponible.
+        ReturnType: None
+        Default: =
+      OnUnavailable:
+        PropertyKind: Event
+        DisplayName: OnUnavailable
+        Description: Définit le comportement exécuté lorsque l’action n’est pas disponible.
+        ReturnType: None
+        Default: |-
+          =Notify(
+              "Cette action n’est pas disponible dans le contexte actuel.",
+              NotificationType.Warning,
+              2000
+          )
+      SourceStatuses:
+        PropertyKind: Input
+        DisplayName: Statuts initiaux
+        Description: Statut autorisé pour cette action
+        DataType: Table
+        Default: =[""]
+      StateValues:
+        PropertyKind: Output
+        DisplayName: Etats métier supportés
+        Description: Expose les valeurs d’état supportées afin de configurer l’action sans utiliser de chaînes de caractères en dur.
+        DataType: Record
+      Text:
+        PropertyKind: Input
+        DisplayName: Texte
+        Description: Définit le texte affiché dans le bouton.
+        DataType: Text
+        Default: ="Texte"
+    Properties:
+      Height: =32
+      StateValues: |-
+        ={
+            Available: "Available",
+            Applied: "Applied",
+            Unavailable: "Unavailable"
+        }
+      Width: =120
+    Children:
+      - btnAction:
+          Control: ModernButton@1.0.0
+          Properties:
+            AccessibleLabel: |-
+              =Coalesce(
+                  Parent.AccessibleLabel,
+                  Parent.Text
+              )
+            Align: =Align.Center
+            Appearance: |+
+              =// Traduit l’état métier exposé par le composant en rendu visuel.
+              // Le mapping reste interne afin que les applications consommatrices ne dépendent pas directement des valeurs d’Appearance du bouton moderne.
+              Switch(
+                  Parent.ActionState,
+                  Parent.StateValues.Available,
+                      ButtonAppearance.Primary,
+                  Parent.StateValues.Applied,
+                      ButtonAppearance.Secondary,
+                  Parent.StateValues.Unavailable,
+                      ButtonAppearance.Outline,
+                  ButtonAppearance.Outline
+              )
+            BasePaletteColor: =Parent.BasePaletteColor
+            DisplayMode: |-
+              =If(
+                  Parent.InteractionEnabled,
+                  DisplayMode.Edit,
+                  DisplayMode.Disabled
+              )
+              // Contrôle la disponibilité technique du bouton.
+              // La validité métier est portée par ActionState et gérée par les événements du composant.
+              // Unavailable ≠ Disabled : une action non disponible peut rester cliquable afin d'expliquer à l'utilisateur pourquoi elle ne peut pas être exécutée.
+            FontWeight: =""
+            Height: =Parent.Height
+            Icon: =Parent.Icon
+            OnSelect: |-
+              =// Délègue le comportement à l’événement correspondant à l’état métier courant.
+              // Le composant orchestre la sélection sans connaître la logique de l’application.
+              Switch(
+                  Parent.ActionState,
+                  Parent.StateValues.Available,
+                      Parent.OnAvailable(),
+                  Parent.StateValues.Applied,
+                      Parent.OnApplied(),
+                  Parent.StateValues.Unavailable,
+                      Parent.OnUnavailable(),
+                  Parent.OnUnavailable()
+              )
+            PaddingBottom: =5
+            PaddingLeft: =12
+            PaddingRight: =12
+            PaddingTop: =5
+            RadiusBottomLeft: =4
+            RadiusBottomRight: =4
+            RadiusTopLeft: =4
+            RadiusTopRight: =4
+            Size: =11
+            Text: =Parent.Text &  If(cmpActionButton.EligibleItemsCount <> 0 && cmpActionButton.EligibleItemsCount <> Blank(), " (" & cmpActionButton.EligibleItemsCount & ")")
+            Tooltip: =
+            VerticalAlign: =VerticalAlign.Middle
+            Width: =Parent.Width
