@@ -1,0 +1,298 @@
+- ctnProcessSendDAC_M:
+    Control: GroupContainer@1.5.0
+    Variant: AutoLayout
+    Properties:
+      Height: =Parent.Height
+      LayoutAlignItems: =LayoutAlignItems.Stretch
+      LayoutDirection: =LayoutDirection.Vertical
+      PaddingBottom: =8
+      PaddingLeft: =8
+      PaddingRight: =8
+      PaddingTop: =8
+      Visible: =vcCurrentProcess in [ _ActionOnList.SendDAC ]
+      Width: =Parent.Width
+      X: =(Parent.Width - Self.Width ) /2
+    Children:
+      - Text5_13:
+          Control: ModernText@1.0.0
+          Properties:
+            Align: =Align.Center
+            Color: =App.Theme.Colors.Darker10
+            FontWeight: =FontWeight.Bold
+            LayoutMinHeight: =16
+            LayoutMinWidth: =16
+            Size: =16
+            Text: |-
+              ="Processus : Envoi à la DAC"
+            Underline: =true
+            Width: =220
+      - ctnSendDACSelect_M:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            BorderStyle: =BorderStyle.None
+            FillPortions: =0
+            Height: =50
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =414
+            Y: =40
+          Children:
+            - numSendDACSelect_M:
+                Control: ModernNumberInput@1.1.2
+                Properties:
+                  Default: =1
+                  DisplayMode: =DisplayMode.View
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Width: =0
+            - lblSendDACSelect_M:
+                Control: ModernText@1.0.0
+                Properties:
+                  BorderColor: =App.Theme.Colors.Darker10
+                  BorderStyle: =BorderStyle.Solid
+                  BorderThickness: =0
+                  Color: =If(vcCurrentWizardStep= numSendDACSelect_M.Value ,  App.Theme.Colors.Darker10, Color.Silver)
+                  FontWeight: =FontWeight.Bold
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  PaddingBottom: =3
+                  PaddingTop: =3
+                  Size: =14
+                  Text: |-
+                    =With({MyStepNumber : numSendDACSelect_M.Value},
+                        Switch(MyStepNumber,
+                            1,_Emoji._1,
+                            2,_Emoji._2,
+                            3,_Emoji._3,
+                            4,_Emoji._4,
+                            5,_Emoji._5,
+                            6,_Emoji._6
+                        )
+                        & If(vcCurrentWizardStep > MyStepNumber , "✅","")  
+                        & " Sélectionner les demandes"
+                    )
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - SendDACSelectAll_M.Width
+            - SendDACSelectAll_M:
+                Control: ModernButton@1.0.0
+                Properties:
+                  Align: =Align.Center
+                  DisplayMode: =If(vcCurrentWizardStep = numSendDACSelect_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
+                  FontWeight: =FontWeight.Bold
+                  Height: =24
+                  Italic: =true
+                  Layout: =ButtonLayout.TextOnly
+                  OnSelect: |-
+                    =UpdateContext({vcDemandesEvent:"SetSelection"&Text(Rand())});
+                    UpdateContext({
+                        vcCurrentWizardStep: numSendDACSelect_M.Value + 1 
+                    });
+                  PaddingBottom: =5
+                  PaddingLeft: =5
+                  PaddingRight: =12
+                  PaddingTop: =5
+                  RadiusBottomLeft: =4
+                  RadiusBottomRight: =4
+                  RadiusTopLeft: =4
+                  RadiusTopRight: =4
+                  Size: =12
+                  Text: ="Tout Sélectionner"
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =120
+      - ctnSendDACSave_M:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            FillPortions: =0
+            Height: =50
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =414
+            Y: =40
+          Children:
+            - numSendDACSave_M:
+                Control: ModernNumberInput@1.1.2
+                Properties:
+                  Default: =2
+                  DisplayMode: =DisplayMode.View
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Width: =0
+            - btnSendDACSave_M:
+                Control: ModernButton@1.0.0
+                Properties:
+                  Align: =Align.Left
+                  Appearance: =If(vcCurrentWizardStep = numSendDACSave_M.Value ,    ButtonAppearance.Primary,ButtonAppearance.Outline)
+                  Color: =If(vcCurrentWizardStep= numSendDACSave_M.Value ,  Color.White, Color.Gray)
+                  DisplayMode: =If(vcCurrentWizardStep = numSendDACSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
+                  FontWeight: =FontWeight.Bold
+                  Layout: =ButtonLayout.TextOnly
+                  OnSelect: |-
+                    =With({
+                            // Statut cible 
+                            //(à priori déclaré sur le bouton de lancement du processus)
+                            MyNextStatus_V2:        cmpActBtnSendDAC_M.NextStatusData,
+                            // Statuts depuis lesquels le processus peut être exécuté 
+                            // (à priori déclaré sur le bouton de lancement du processus)
+                            // (utilisés plus loin pour maintenir le filtre après traitement)
+                            MyCurrentStatuses_V2 :  cmpActBtnSendDAC_M.SourceStatusesData
+                        },
+                        With(
+                            { 
+                            },
+                            // # Applique le changement de statut à toutes les demandes sélectionnées
+                            ForAll(dlstDemandes_M.SelectedItems,
+                                Patch(AIRH_Demandes,
+                                    ShowColumns( ThisRecord,ID),
+                                    {
+                                        StatusKey:          MyNextStatus_V2.StatusKey,
+                                        'Statut Detail':    MyNextStatus_V2.StatutDetail,
+                                        'Statut General':   MyNextStatus_V2.StatutGeneral
+                                    }
+                                )        
+                            );
+
+                            Concurrent(
+                                // # envoi de notification pour cette action
+                                ForAll(
+                                    Distinct(dlstDemandes_M.SelectedItems,SPW) As MyCurrentSpw,
+                                    With({MyDemandeSPW : Filter(dlstDemandes_M.SelectedItems,SPW = MyCurrentSpw.Value)},
+                                        With(
+                                            {
+                                                MyTypeDemande :     First(MyDemandeSPW).TypeDemandeValue,
+                                                MyNbDemandes :      Value(CountRows(MyDemandeSPW)),
+                                                MySpw :             MyCurrentSpw.Value,
+                                                MyListeEmploiHtml : Concat( MyDemandeSPW,"<li>" & NumEmploi & "</li>" & Char(10) ),
+                                                MyRecipients :      _DACEmailList()
+                                            },
+                                            If(IsBlank(MyRecipients),
+                                                // Aucune liste DFA configurée pour ce SPW ou pour la DAC
+                                                Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
+                                                // Envoi standard
+                                                Office365Outlook.SendEmailV2(
+                                                    // To  : distribution list
+                                                    MyRecipients,
+                                                    // Subject: notification métier                   
+                                                    _txtMessage.EmailSubjectPrefix 
+                                                        &   MyTypeDemande & " : Nouvelle(s) demande(s) envoyée(s) (" & MySpw & ")",    
+                                                    // Body: informations détaillées
+                                                    "<p>Bonjour,</p> " 
+                                                            &    "<p><i>[" & MyTypeDemande & "]: </i></p>
+                                                            <p>Les demandes suivantes ont été été transmise via <b>" & _AppName & "</b></p>"
+                                                        & "<p><strong>" & MySpw &"</strong></p>
+                                                            <ul>"
+                                                            & MyListeEmploiHtml
+                                                            &"</ul>" 
+                                                    & _txtMessage.EmailFooter 
+                                                );
+                                            )
+                                        )
+                                    )
+                                );
+                                ,       
+                                // # Trace chaque changement de statut dans l'historique
+                                fxLogStatusHistory(
+                                    ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
+                                    MyNextStatus_V2.StatusKey,
+                                    vvUserRole.Key
+                                );
+                            );
+
+                            // Confirmation utilisateur du traitement réalisé
+                            Notify(
+                                CountRows(dlstDemandes_M.SelectedItems) & " demande(s) a/ont été correctement envoyée(s) à la DAC" ,
+                                NotificationType.Success,2000
+                            );  
+
+                            // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface
+                            Select(BtnLoadDemandes_M);
+
+                            // Marque le processus comme terminé 
+                            // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut
+                            UpdateContext({
+                                vcCurrentWizardStep:        numSendDACSave_M.Value + 1 ,
+                                vcCurrentProcessCompleted:  true,
+                                // Conservation du mécanisme _DynamicOnStatus : 
+                                // les demandes restent visibles après traitement,
+                                // mais désormais dans leur statut cible
+                                vcApplyFilterOnStatus_v2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
+                            }) 
+                        );
+                    );
+                  PaddingBottom: =5
+                  PaddingLeft: =5
+                  PaddingRight: =12
+                  PaddingTop: =5
+                  RadiusBottomLeft: =4
+                  RadiusBottomRight: =4
+                  RadiusTopLeft: =4
+                  RadiusTopRight: =4
+                  Size: =14
+                  Text: |
+                    =With({MyStepNumber : numSendDACSave_M.Value},
+                        Switch(MyStepNumber,
+                            1,_Emoji._1,
+                            2,_Emoji._2,
+                            3,_Emoji._3,
+                            4,_Emoji._4,
+                            5,_Emoji._5,
+                            6,_Emoji._6
+                        )
+                        & If(vcCurrentWizardStep > MyStepNumber , "✅","")  
+                        &    " Envoyer"
+                    )
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
+      - ctnSendDACExit_M:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            AlignInContainer: =AlignInContainer.SetByContainer
+            FillPortions: =0
+            Height: =50
+            LayoutAlignItems: =LayoutAlignItems.Center
+            LayoutDirection: =LayoutDirection.Horizontal
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            PaddingTop: =8
+            Width: =414
+            Y: =40
+          Children:
+            - numSendDACExit_M:
+                Control: ModernNumberInput@1.1.2
+                Properties:
+                  Default: =3
+                  DisplayMode: =DisplayMode.View
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                  Width: =0
+            - btnSendDACExit_M:
+                Control: ModernButton@1.0.0
+                Properties:
+                  Align: =Align.Left
+                  FontWeight: =FontWeight.Bold
+                  Layout: =ButtonLayout.TextOnly
+                  OnSelect: =Select(btnGenericExitProcess_M)
+                  PaddingBottom: =5
+                  PaddingLeft: =5
+                  PaddingRight: =12
+                  PaddingTop: =5
+                  RadiusBottomLeft: =4
+                  RadiusBottomRight: =4
+                  RadiusTopLeft: =4
+                  RadiusTopRight: =4
+                  Size: =14
+                  Text: =If(vcCurrentWizardStep = numSendDACExit_M.Value, "Terminer","Annuler")
+                  VerticalAlign: =VerticalAlign.Middle
+                  Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
