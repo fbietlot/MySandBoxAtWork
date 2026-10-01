@@ -1,0 +1,97 @@
+- btnDirCandPasRetenu_F:
+    Control: Button@0.0.45
+    Properties:
+      AlignInContainer: =AlignInContainer.Center
+      Appearance: |-
+        =// Évalue si toutes les informations requises sont bien présente
+        // [Pattern] : l'état visuel (Appearance) porte la règle métier et est réutilisé dans OnSelect comme source de décision
+        // Le bouton reste interactif pour permettre un feedback utilisateur explicite en cas d'action non autorisée
+        If(
+            IsBlank(txtValidationMsg_F.Text) , 
+            'ButtonCanvas.Appearance'.Primary,
+            'ButtonCanvas.Appearance'.Outline
+        )
+      DisplayMode: |
+        =DisplayMode.Edit
+        // [Pattern] : éligibilité pilotée par Appearance avec gestion des cas invalides dans OnSelect
+        // Le bouton reste volontairement actif : l'état visuel (Appearance) reflète l'éligibilité réelle
+        // OnSelect s'appuie sur cet état pour intercepter et gérer les cas non valides avec un feedback utilisateur
+      FontWeight: =
+      Icon: ="DismissCircle"
+      OnSelect: |-
+        =With(
+            { 
+                MyNextStatus: { // Definition du statut suivant dans le process
+                    Detail:   _StatutDetail.DirReaffPasReaff,
+                    General:  _StatutGeneral.DirReaff
+                }
+            },
+            If(Self.Appearance = 'ButtonCanvas.Appearance'.Outline,
+                // ## Informe l'utilisateur des informations requises
+                Notify(_txtMessage.RequiredFields ,NotificationType.Warning ,2000);
+
+                ,// ## Logique métier de changement de statut
+                UpdateContext({vcDemande : 
+                    // La demande change de statut
+                    Patch(AIRH_Demandes,
+                        vcDemande,
+                        frmGeneralInfo_F.Updates,
+                        {
+                            'Statut General': MyNextStatus.General,
+                            'Statut Detail':  MyNextStatus.Detail
+                        }
+                    )
+                });
+
+                If(IsEmpty(Errors(AIRH_Demandes)),
+
+                    Concurrent(
+                        // # Notifie le DAC des changements de statut
+                        With(
+                            {
+                                MyTypeDemande :     vcDemande.'Type de demande'.Value,
+                                MySpw :             vcDemande.SPW,
+                                MyNumEmploi:        vcDemande.'Numéro d''emploi'
+                            },
+                            Office365Outlook.SendEmailV2(
+                                // To  : liste DAC
+                                _DACEmailList(),    
+                                // Subject: notification métier
+                                _txtMessage.EmailSubjectPrefix &   "Changement de statut pour : "  & MyTypeDemande & " (" & MyNumEmploi & ")", 
+                                // Body: informations détaillées
+                                "<p>Bonjour,</p>
+                                <p>La <i>" & MyTypeDemande & "<i> suivante a un nouveau statut : " & MyNextStatus.Detail & " (" & MyNextStatus.General & ")" &
+                                "<p><b>" & MySpw & "</b> (emploi <b>" & MyNumEmploi & "</b>)."
+                                & _txtMessage.EmailFooter 
+                            )
+                        )
+                        ,//@NextConcurrent
+                        Patch(AIRH_Status_History,
+                            Defaults(AIRH_Status_History),
+                            {
+                                Titre:          vcDemande.'Numéro d''emploi',
+                                ID_Demande:     vcDemande.ID,
+                                StatutGeneral:  MyNextStatus.General,
+                                StatutDetail:   MyNextStatus.Detail,
+                                Acteur:         vcStatutConfig.ActionOwner.Text
+                            }
+                        )
+                    )
+                );
+
+                ResetForm(frmGeneralInfo_F);
+                Navigate(Screen_Main_M)
+            )
+        );
+      Text: =_ActionOnForm.DirCandNonRet
+      Visible: |+
+        =With({MyAction : _ActionOnForm.DirCandNonRet},
+            // [PATERN]Visibilité pilotée par une matrice de décision :
+            // - les statuts (définis dans App.Formulas) exposent les actions autorisées à ce niveau
+            // - chaque action définit elle-même les rôles autorisés
+            // → le bouton est visible uniquement si l’action est permise par le statut courant et accessible au rôle utilisateur
+            MyAction in vcStatutConfig.Actions
+            && MyAction in vvUserRole.Actions
+        )
+
+      Width: =200
