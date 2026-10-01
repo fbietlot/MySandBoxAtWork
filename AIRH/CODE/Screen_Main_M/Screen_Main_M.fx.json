@@ -883,14 +883,9 @@ Screens:
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnCOSTRADecisionExit_M); //Arrêter Le processus
-                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus,\n        MyCurrentStatut :   Self.SourceStatuses\n    },\n    \n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,Distinct( Filter( _TypeDemandeConfigTable,Self.Action in Actions),Type));\n\n    Reset(radCOSTRAdecisionChoice_M);\n    UpdateIf(ccDemandes,\n                true,\n                { RecordSelected: Statut_x0020_Detail in MyCurrentStatut}\n    ); // Prepare la selection par defaut\n    Select(btnGridClearSelect_M);\n    UpdateContext({\n        vcCurrentProcess :                  MyProcess,\n        vcCurrentWizardStep :              1,\n        vcCurrentProcessCompleted :         false,\n        vcCurrentWizardStepAfterSelect :   numCOSTRADecisionSelect_M.Value + 1 , // La plus part du temps après la selection d'une demande dans la liste on passe à l\"tape 2 (sinon modifier cette valuer)\n        vcApplyFilter :                     MyFilterToApply,\n        vcApplyFilterOnStatus:              Self.SourceStatuses\n    });\n)"
-                                    OnUnavailable: |-
-                                      =// ## Informe l'utilisateur si l'action en masse n'est pas autorisée pour la sélection courante
-                                      If(vcCurrentProcess <> Self.Action,
-                                          Notify(_txtMessage.ProcessOnGoing,NotificationType.Warning ,2000),
-                                          Notify(_txtMessage.SelectionProcessNoEligibleItem & Concat(Self.SourceStatuses,Value," | ") ,NotificationType.Warning ,2000)
-                                      );
-                                    SourceStatuses: =[_StatutDetail.NGWCOSTRADemande]
+                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus_V2,\n        MyCurrentStatut :   Self.SourceStatusesData\n    },\n\n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,\n        Distinct(\n            Filter(_TypeDemandeConfigTable,Self.Action in Actions),\n            Type\n        )\n    );\n\n    Reset(radCOSTRAdecisionChoice_M);\n\n    // Prepare la selection par defaut\n    UpdateIf(ccDemandes,\n                true,\n                {RecordSelected: StatusKey in MyCurrentStatut.StatusKey}\n    );\n    Select(btnGridClearSelect_M);\n    \n    UpdateContext({\n        vcCurrentProcess :                 MyProcess,\n        vcCurrentWizardStep :              1,\n        vcCurrentProcessCompleted :        false,\n        vcCurrentWizardStepAfterSelect :   numCOSTRADecisionSelect_M.Value + 1 , // La plus part du temps après la selection d'une demande dans la liste on passe à l\"tape 2 (sinon modifier cette valuer)\n        vcApplyFilter :                    MyFilterToApply,\n        vcApplyFilterOnStatus_V2:          Self.SourceStatusesData.StatusKey\n    });\n)"
+                                    OnUnavailable: =Select(btnGenericActionUnsupported_M)
+                                    SourceStatuses: =[_StatusDetailKey.NGWCOSTRADemande]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
@@ -942,14 +937,43 @@ Screens:
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnSendGWCancel_M); //Arrêter Le processus
-                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply.GWDecision,\n        MyCurrentStatut :   [_StatutDetail.NGWAuGW]\n    },\n    \n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,Distinct( Filter( _TypeDemandeConfigTable,Self.Action in Actions),Type));\n\n    Reset(radGWdecisionChoice_M);Reset(dteGWDecisionDate_M);Reset(txtGWDecisionComment_M);\n    UpdateIf(ccDemandes,\n                true,\n                { RecordSelected: Statut_x0020_Detail in MyCurrentStatut}\n    ); // Prepare la selection par defaut\n    Select(btnGridClearSelect_M);\n    UpdateContext({\n        vcCurrentProcess :      MyProcess,\n        vcCurrentWizardStep :  1,\n        vcCurrentProcessCompleted : false,\n        vcCurrentWizardStepAfterSelect : 2, // La plus part du temps après la selection d'une demande dans la liste on passe à l\"tape 2 (sinon modifier cette valuer)\n        vcApplyFilter :         MyFilterToApply\n    });\n)"
-                                    OnUnavailable: |-
-                                      =// ## Informe l'utilisateur si l'action en masse n'est pas autorisée pour la sélection courante
-                                      If(vcCurrentProcess <> Self.Action,
-                                          Notify(_txtMessage.ProcessOnGoing,NotificationType.Warning ,2000),
-                                          Notify(_txtMessage.SelectionProcessNoEligibleItem & Concat(Self.SourceStatuses,Value," | ") ,NotificationType.Warning ,2000)
-                                      );
-                                    SourceStatuses: =[_StatutDetail.NGWAuGW]
+                                    OnAvailable: |-
+                                      =// ## Logique métier de lancemnt d'un process
+                                      With(
+                                          {
+                                              MyProcess :         Self.Action,
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V2,
+                                              MyCurrentStatut :   Self.SourceStatusesData
+                                          },
+
+                                          //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
+                                          ClearCollect(ccValidForTypeDemande,
+                                              Distinct(
+                                                  Filter(_TypeDemandeConfigTable,Self.Action in Actions),
+                                                  Type
+                                              )
+                                          );
+
+                                          Reset(radGWdecisionChoice_M);Reset(dteGWDecisionDate_M);Reset(txtGWDecisionComment_M);
+
+                                          // Prepare la selection par defaut
+                                          UpdateIf(ccDemandes,
+                                                      true,
+                                                      {RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+                                          ); 
+                                          Select(btnGridClearSelect_M);
+
+                                          UpdateContext({
+                                              vcCurrentProcess :          MyProcess,
+                                              vcCurrentWizardStep :       1,
+                                              vcCurrentProcessCompleted : false,
+                                              vcCurrentWizardStepAfterSelect : numGwDecisionSelect_M.Value, // La plus part du temps après la selection d'une demande dans la liste on passe à l"tape 2 (sinon modifier cette valuer)
+                                              vcApplyFilter :                     MyFilterToApply,
+                                              vcApplyFilterOnStatus_V2:           Self.SourceStatusesData.StatusKey
+                                          });
+                                      )
+                                    OnUnavailable: =Select(btnGenericActionUnsupported_M)
+                                    SourceStatuses: =[_StatusDetailKey.NGWAuGW]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
@@ -4938,7 +4962,115 @@ Screens:
                                           DisplayMode: =If(vcCurrentWizardStep = numGWDecisionSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                                           FontWeight: =FontWeight.Bold
                                           Layout: =ButtonLayout.TextOnly
-                                          OnSelect: "=With(\n    { \n        MyCurrentStatut : _StatutDetail.NGWAuGW,   // Statut attendu pour que l’action soit autorisée\n        MyNextStatus: \n        Switch(radGWdecisionChoice_M.Selected.Value ,\n             _Decision.Validée,\n                {                                     // Statut cible appliqué aux demandes après exécution\n                    Detail:   _StatutDetail.NGWGWDVValidee,\n                    General:  _StatutGeneral.NGWProcessusNGW_DV\n                },\n            _Decision.Refusée,\n                {                                     // Statut cible appliqué aux demandes après exécution\n                    Detail:   _StatutDetail.GWRefusee,\n                    General:  _StatutGeneral.Cloture\n                }\n        )\n    },\n    // # Applique le changement de statut à toutes les demandes sélectionnées\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                'Statut General':   MyNextStatus.General,\n                'Statut Detail':    MyNextStatus.Detail\n            },\n            Switch(radGWdecisionChoice_M.Selected.Value ,\n             _Decision.Validée,\n                {\n                    DateDV_GW : dteGWDecisionDate_M.SelectedDate\n                },\n            _Decision.Refusée,\n                {\n                    CommentGW : txtGWDecisionComment_M.Text\n                }\n            )\n        )\n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        ForAll(\n            Distinct(dlstDemandes_M.SelectedItems,SPW) As MyCurrentSpw,\n            With({MyDemandeSPW : Filter(dlstDemandes_M.SelectedItems,SPW = MyCurrentSpw.Value)},\n                With(\n                    {\n                        MyTypeDemande :     First(MyDemandeSPW).TypeDemandeValue,\n                        MyNbDemandes :      Value(CountRows(MyDemandeSPW)),\n                        MySpw :             MyCurrentSpw.Value,\n                        MyListeEmploiHtml : Concat( MyDemandeSPW,\"<li>\" & NumEmploi & \"</li>\" & Char(10) ),\n                        MyRecipients :      _DFAEmailList(MyCurrentSpw.Value)\n                    },\n                    If(IsBlank(MyRecipients),\n                        // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                        Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                        // Envoi standard\n                        Office365Outlook.SendEmailV2(\n                            // To  : DFA distribution list\n                            MyRecipients,\n                            // Subject: notification métier                   \n                            _txtMessage.EmailSubjectPrefix \n                                &   \"Demande(s) \" & radGWdecisionChoice_M.Selected.Value &\"(s) par le GW\" ,     \n                            // Body: informations détaillées\n                            \"<p>Bonjour,</p> \" \n                                & Switch(radGWdecisionChoice_M.Selected.Value ,\n                                    _Decision.Validée,\n                                        \"<p><i>[\" & MyTypeDemande & \"]: </i> Les emplois suivants ont été <b>déclarés vacants</b> par le GW le \" & dteGWDecisionDate_M.SelectedDate,\n                                    _Decision.Refusée,\n                                        \"<p><i>[\" & MyTypeDemande & \"]: </i> Les demandes pour les emplois suivants ont été <b>refusées</b> par le GW.\"\n                                ) \n                                & \"<p><strong>\" & MySpw &\"</strong></p>\n                                    <ul>\"\n                                    & MyListeEmploiHtml\n                                    &\"</ul>\" \n                                & If( radGWdecisionChoice_M.Selected.Value = _Decision.Refusée,\n                                    \"<br><u>Motif : </u> <br>\" \n                                        & \"<i>\" &  txtGWDecisionComment_M.Text & \"</i>\" ,\n                                        \"\"\n                                )          \n                            & _txtMessage.EmailFooter \n                        );\n                    )\n                )\n            )\n        );\n        ,       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus,\n            vvUserRole.Key\n        );\n    );\n                \n    // # Recharge les données pour refléter les changements en UI\n    Select(BtnLoadDemandes_M);\n    // Advance the wizard to the confirmation/next stage\n    UpdateContext({\n        vcCurrentWizardStep: numGWDecisionSave_M.Value + 1 ,\n        vcApplyFilter:_FilterToApply.GWDecisionCompleted\n    })\n);\n\n"
+                                          OnSelect: |-
+                                            =With(
+                                                { 
+                                                    // Statut cible 
+                                                    //(à priori déclaré sur le bouton de lancement du processus)
+                                                    MyNextStatus_V2:    
+                                                        Switch(radGWdecisionChoice_M.Selected.Value ,
+                                                            _Decision.Validée,
+                                                                LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.NGWGWDVValidee),
+                                                            _Decision.Refusée,
+                                                                LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.GWRefusee)
+                                                        ),
+                                                    // Statuts depuis lesquels le processus peut être exécuté 
+                                                    // (à priori déclaré sur le bouton de lancement du processus)
+                                                    // (utilisés plus loin pour maintenir le filtre après traitement)
+                                                    MyCurrentStatuses_V2:   cmpActBtnGWDecision_M.SourceStatusesData
+                                                },
+
+                                                // # Applique le changement de statut à toutes les demandes sélectionnées
+                                                ForAll(dlstDemandes_M.SelectedItems,
+                                                    Patch(AIRH_Demandes,
+                                                        ShowColumns( ThisRecord,ID),
+                                                        {
+                                                            StatusKey:          MyNextStatus_V2.StatusKey,
+                                                            'Statut Detail':    MyNextStatus_V2.StatutDetail,
+                                                            'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                        },
+                                                        Switch(radGWdecisionChoice_M.Selected.Value ,
+                                                            _Decision.Validée,
+                                                                {
+                                                                    DateDV_GW : dteGWDecisionDate_M.SelectedDate
+                                                                },
+                                                            _Decision.Refusée,
+                                                                {
+                                                                    CommentGW : txtGWDecisionComment_M.Text
+                                                                }
+                                                        )
+                                                    )
+                                                );
+
+                                                Concurrent(
+                                                    // # envoi de notification pour cette action
+                                                    ForAll(
+                                                        Distinct(dlstDemandes_M.SelectedItems,SPW) As MyCurrentSpw,
+                                                        With({MyDemandeSPW : Filter(dlstDemandes_M.SelectedItems,SPW = MyCurrentSpw.Value)},
+                                                            With(
+                                                                {
+                                                                    MyTypeDemande :     First(MyDemandeSPW).TypeDemandeValue,
+                                                                    MyNbDemandes :      Value(CountRows(MyDemandeSPW)),
+                                                                    MySpw :             MyCurrentSpw.Value,
+                                                                    MyListeEmploiHtml : Concat( MyDemandeSPW,"<li>" & NumEmploi & "</li>" & Char(10) ),
+                                                                    MyRecipients :      _DFAEmailList(MyCurrentSpw.Value)
+                                                                },
+                                                                If(IsBlank(MyRecipients),
+                                                                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC
+                                                                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
+                                                                    // Envoi standard
+                                                                    Office365Outlook.SendEmailV2(
+                                                                        // To  : DFA distribution list
+                                                                        MyRecipients,
+                                                                        // Subject: notification métier                   
+                                                                        _txtMessage.EmailSubjectPrefix 
+                                                                            &   "Demande(s) " & radGWdecisionChoice_M.Selected.Value &"(s) par le GW" ,     
+                                                                        // Body: informations détaillées
+                                                                        "<p>Bonjour,</p> " 
+                                                                            & Switch(radGWdecisionChoice_M.Selected.Value ,
+                                                                                _Decision.Validée,
+                                                                                    "<p><i>[" & MyTypeDemande & "]: </i> Les emplois suivants ont été <b>déclarés vacants</b> par le GW le " & dteGWDecisionDate_M.SelectedDate,
+                                                                                _Decision.Refusée,
+                                                                                    "<p><i>[" & MyTypeDemande & "]: </i> Les demandes pour les emplois suivants ont été <b>refusées</b> par le GW."
+                                                                            ) 
+                                                                            & "<p><strong>" & MySpw &"</strong></p>
+                                                                                <ul>"
+                                                                                & MyListeEmploiHtml
+                                                                                &"</ul>" 
+                                                                            & If( radGWdecisionChoice_M.Selected.Value = _Decision.Refusée,
+                                                                                "<br><u>Motif : </u> <br>" 
+                                                                                    & "<i>" &  txtGWDecisionComment_M.Text & "</i>" ,
+                                                                                    ""
+                                                                            )          
+                                                                        & _txtMessage.EmailFooter 
+                                                                    );
+                                                                )
+                                                            )
+                                                        )
+                                                    );
+
+                                                    ,       
+                                                    // # Trace chaque changement de statut dans l'historique
+                                                    fxLogStatusHistory(
+                                                        ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
+                                                        MyNextStatus_V2.StatusKey,
+                                                        vvUserRole.Key
+                                                    );
+                                                );
+
+                                                // # Recharge les données pour refléter les changements en UI
+                                                Select(BtnLoadDemandes_M);
+
+                                                // Marque le processus comme terminé 
+                                                // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut    
+                                                UpdateContext({
+                                                    vcCurrentWizardStep:       numGWDecisionSave_M.Value + 1 ,
+                                                    vcCurrentProcessCompleted:  true,
+                                                    // Conservation du mécanisme _DynamicOnStatus : 
+                                                    // les demandes restent visibles après traitement,  mais désormais dans leur statut cible
+                                                    vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
+                                                })
+                                            );
                                           PaddingBottom: =5
                                           PaddingLeft: =5
                                           PaddingRight: =12
@@ -5229,7 +5361,7 @@ Screens:
                                           DisplayMode: =If(vcCurrentWizardStep = numCOSTRADecisionSAVE_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                                           FontWeight: =FontWeight.Bold
                                           Layout: =ButtonLayout.TextOnly
-                                          OnSelect: "=Switch(radCOSTRAdecisionChoice_M.Selected.Value ,\n    _Decision.Validée,\n        With(\n            { \n                MyCurrentStatut : _StatutDetail.NGWCOSTRADemande,   // Statut attendu pour que l’action soit autorisée\n                MyNextStatus: \n                    {                                     // Statut cible appliqué aux demandes après exécution\n                        Detail:   _StatutDetail.NGWAuGW,\n                        General:  _StatutGeneral.NGWProcessusNGW_DV\n                    }\n            },\n            // # Applique le changement de statut à toutes les demandes sélectionnées\n            ForAll(dlstDemandes_M.SelectedItems,\n                Patch(AIRH_Demandes,\n                    ShowColumns( ThisRecord,ID),\n                    {\n                        'Statut General':   MyNextStatus.General,\n                        'Statut Detail':    MyNextStatus.Detail\n                    }\n                )\n            );\n\n            Concurrent(\n                // # envoi de notification pour cette action\n                // # Aucun envoi de notification pour cette action\n                false\n                ,       \n                // # Trace chaque changement de statut dans l'historique\n                fxLogStatusHistory(\n                    ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n                    MyNextStatus,\n                    vvUserRole.Key\n                );\n            );\n                        \n            // # Recharge les données pour refléter les changements en UI\n            Select(BtnLoadDemandes_M);\n            // Advance the wizard to the confirmation/next stage\n            UpdateContext({\n                vcCurrentWizardStep: numCOSTRADecisionSAVE_M.Value + 1 ,\n                vcApplyFilterOnStatus: [_StatutDetail.NGWAuGW]\n            })\n        );\n\n    ,   \n    _Decision.Refusée,\n    // Ouvre l'écran de traitement de la demande sélectionnée.\n    // Charge la demande complète ainsi que les configurations nécessaires\n    // afin d'initialiser correctement le contexte métier du formulaire.\n    With({ MyDemande :   dlstDemandes_M.Selected},\n        Navigate(Screen_Form_F,\n            Transition.Pop,\n            {\n                vcDemande:              LookUp(AIRH_Demandes,           ID = dlstDemandes_M.Selected.ID ), // MyDemande.ID générait une erreur de delegation (probable faux positif du compilateur)\n                // Indique que l’écran est ouvert en mode édition afin d’adapter l’interface et les boutons disponibles\n                // Remarque : le mode des formulaires est piloté dynamiquement via vcStatutConfig afin de respecter les règles métier liées au statut\n                vcScreenIsReadOnly :    false,\n                vcTypeDemandeConfig :   LookUp(_TypeDemandeConfigTable, Type =  MyDemande.TypeDemandeValue),\n                vcStatutConfig :        LookUp(_StatutConfigTable,      StatusKey = MyDemande.StatusKey),            \n                vcPosteInformation:     Blank()     \n            }\n        );\n        UpdateContext({\n                vcCurrentWizardStep: numCOSTRADecisionSAVE_M.Value + 1 ,\n                vcApplyFilterOnStatus: [_StatutDetail.NGWCOSTRADemande , _StatutDetail.COSTRARefusee]\n            })\n    );\n)"
+                                          OnSelect: "=Switch(radCOSTRAdecisionChoice_M.Selected.Value ,\n    _Decision.Validée,\n        With(\n            { \n                // Statut cible \n                //(à priori déclaré sur le bouton de lancement du processus)\n                MyNextStatus_V2:    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.NGWAuGW),\n                // Statuts depuis lesquels le processus peut être exécuté \n                // (à priori déclaré sur le bouton de lancement du processus)\n                // (utilisés plus loin pour maintenir le filtre après traitement)\n                MyCurrentStatuses_V2:   cmpActBtnCOSTRADecision_M.SourceStatusesData\n            },\n\n            // # Applique le changement de statut à toutes les demandes sélectionnées\n            ForAll(dlstDemandes_M.SelectedItems,\n                Patch(AIRH_Demandes,\n                    ShowColumns( ThisRecord,ID),\n                    {\n                        StatusKey:          MyNextStatus_V2.StatusKey,\n                        'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                        'Statut General':   MyNextStatus_V2.StatutGeneral\n                    }\n                )\n            );\n\n            Concurrent(\n                // # envoi de notification pour cette action\n                // # Aucun envoi de notification pour cette action\n                false\n                ,       \n                // # Trace chaque changement de statut dans l'historique\n                fxLogStatusHistory(\n                    ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n                    MyNextStatus_V2.StatusKey,\n                    vvUserRole.Key\n                );\n            );\n                        \n            // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n            Select(BtnLoadDemandes_M);\n\n            // Confirmation utilisateur du traitement réalisé\n            Notify(\n                CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) a/ont été validées par le COSTRA\",\n                NotificationType.Success,2000\n            );\n\n            // Advance the wizard to the confirmation/next stage\n            UpdateContext({\n                vcCurrentWizardStep:    numCOSTRADecisionSAVE_M.Value + 1 ,\n                // Conservation du mécanisme _DynamicOnStatus : \n                // les demandes restent visibles après traitement,  mais désormais dans leur statut cible\n                vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)\n            })\n        );\n\n    ,   \n    _Decision.Refusée,\n    With(\n        { \n            // Statut cible \n            //(à priori déclaré sur le bouton de lancement du processus)\n            MyNextStatus_V2:    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.COSTRARefusee),\n            // Statuts depuis lesquels le processus peut être exécuté \n            // (à priori déclaré sur le bouton de lancement du processus)\n            // (utilisés plus loin pour maintenir le filtre après traitement)\n            MyCurrentStatuses_V2:   cmpActBtnCOSTRADecision_M.SourceStatusesData\n        },\n        // Ouvre l'écran de traitement de la demande sélectionnée.\n        // Charge la demande complète ainsi que les configurations nécessaires\n        // afin d'initialiser correctement le contexte métier du formulaire.\n        With({ MyDemande :   dlstDemandes_M.Selected},\n            Navigate(Screen_Form_F,\n                Transition.Pop,\n                {\n                    vcDemande:              LookUp(AIRH_Demandes,           ID = dlstDemandes_M.Selected.ID ), // MyDemande.ID générait une erreur de delegation (probable faux positif du compilateur)\n                    // Indique que l’écran est ouvert en mode édition afin d’adapter l’interface et les boutons disponibles\n                    // Remarque : le mode des formulaires est piloté dynamiquement via vcStatutConfig afin de respecter les règles métier liées au statut\n                    vcScreenIsReadOnly :    false,\n                    vcTypeDemandeConfig :   LookUp(_TypeDemandeConfigTable, Type =  MyDemande.TypeDemandeValue),\n                    vcStatutConfig :        LookUp(_StatutConfigTable,      StatusKey = MyDemande.StatusKey),            \n                    vcPosteInformation:     Blank()     \n                }\n            );\n            UpdateContext({\n                    vcCurrentWizardStep:    numCOSTRADecisionSAVE_M.Value + 1 ,\n                    vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)\n                })\n        )\n    );\n)"
                                           PaddingBottom: =5
                                           PaddingLeft: =5
                                           PaddingRight: =12
@@ -6568,36 +6700,6 @@ Screens:
                                                     ccDemandes,
                                                     StatusKey in vcApplyFilterOnStatus_V2
                                                 ), 
-                                            _FilterToApply.GWSendNote,
-                                                Filter(
-                                                    ccDemandes,
-                                                    Statut_x0020_Detail in [_StatutDetail.DACDVEnPrevision,_StatutDetail.DirReaffPasCandid,_StatutDetail.DirReaffPasReaff]
-                                                ),
-                                            _FilterToApply.GWSendNoteCompleted,
-                                                Filter(
-                                                    ccDemandes,
-                                                    Statut_x0020_Detail =_StatutDetail.NGWCOSTRADemande
-                                                ),
-                                            _FilterToApply.GWDecision,
-                                                Filter(
-                                                    ccDemandes,
-                                                    Statut_x0020_Detail =_StatutDetail.NGWAuGW
-                                                ),
-                                            _FilterToApply.GWDecisionCompleted,
-                                                Filter(
-                                                    ccDemandes,
-                                                    Statut_x0020_Detail in [_StatutDetail.GWRefusee,_StatutDetail.NGWGWDVValidee]
-                                                ),
-                                            _FilterToApply.CandAudit,
-                                                Filter(
-                                                    ccDemandes,
-                                                    Statut_x0020_Detail =_StatutDetail.CandidDFA
-                                                ),
-                                            _FilterToApply.CandAuditCompleted,
-                                                Filter(
-                                                    ccDemandes,
-                                                    Statut_x0020_Detail =_StatutDetail.CandidPVEnCours
-                                                ),
                                             //default
                                                 Filter(
                                                     ccDemandes,
@@ -6710,8 +6812,9 @@ Screens:
                                     If(
                                         Or(
                                             vcCurrentProcess = _ActionOnList.CostraDecision && radCOSTRAdecisionChoice_M.Selected.Value = _Decision.Refusée,
-                                            vcCurrentProcess = _ActionOnList.CODIDecision && vcCurrentWizardStep >= numCODIdecisionSelectSingle_M.Value 
-                                    ),
+                                            vcCurrentProcess = _ActionOnList.CODIDecision && vcCurrentWizardStep >= numCODIdecisionSelectSingle_M.Value,
+                                            vcCurrentProcess = _ActionOnList.GWDecision && vcCurrentWizardStep >= numGwDecisionChoice_M.Value 
+                                        ),
                                         'PowerCAT.FluentDetailsList.SelectionType'.Single,
                                         'PowerCAT.FluentDetailsList.SelectionType'.Multiple
                                     )

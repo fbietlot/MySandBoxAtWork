@@ -4443,7 +4443,72 @@ Screens:
                                     NextStatus: =_StatusDetailKey.COSTRARefusee
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus: {                                         // Statut cible appliqué aux demandes après exécution\n            Detail:   Self.NextStatus,\n            General:  LookUp(_StatutConfigTable,StatutDetail = Self.NextStatus).StatutGeneral\n        }\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {CommentValidationCOSTRA:  frmNextStep_F.Updates.CommentValidationCOSTRA},\n            {\n                'Statut General': MyNextStatus.General,\n                'Statut Detail':  MyNextStatus.Detail\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DFAEmailList(vcDemande.SPW)\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix \n                            &   \"Votre \" & MyTypeDemande & \" est refusée par le COSTRA\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\n                        <p>La <i>\" & MyTypeDemande & \"</i> a été refusée par le COSTRA via <b>\" & _AppName & \"</b> \" &\n                        \"pour le <b>\" & vcDemande.SPW & \"</b> (emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b>).\"\n                        & \"<br><u>Motif : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CommentValidationCOSTRA & \"</i>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(\"La demande n’a pas pu être mise à jour.\",NotificationType.Error,5000)\n    );\n);\n\n\n"
+                                    OnAvailable: |-
+                                      =// ## Logique métier de changement de statut
+                                      With(
+                                          // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
+                                          { 
+                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+
+                                          },
+
+                                          UpdateContext({vcDemande : 
+                                              //# Applique le changement de statut à la demande traitée       
+                                              Patch(AIRH_Demandes,
+                                                  vcDemande,
+                                                  {CommentValidationCOSTRA:  frmNextStep_F.Updates.CommentValidationCOSTRA},
+                                                  {
+                                                      StatusKey:          MyNextStatus_V2.StatusKey,
+                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
+                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                  }
+                                              )
+                                          });
+
+                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                              Concurrent(
+                                                  // # Notifie des changements de statut
+                                                  With(
+                                                      {
+                                                          MyTypeDemande :     vcDemande.'Type de demande'.Value,
+                                                          MySpw :             vcDemande.SPW,
+                                                          MyNumEmploi:        vcDemande.'Numéro d''emploi',
+                                                          MyRecipients :      _DFAEmailList(vcDemande.SPW)
+                                                      },
+                                                      If(IsBlank(MyRecipients),
+                                                          // Aucune liste DFA configurée pour ce SPW ou pour la DAC
+                                                          Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
+                                                          // Envoi standard
+                                                          Office365Outlook.SendEmailV2(
+                                                              // To  : DFA distribution list
+                                                              MyRecipients,    
+                                                              // Subject: notification métier
+                                                              _txtMessage.EmailSubjectPrefix 
+                                                                  &   "Votre " & MyTypeDemande & " est refusée par le COSTRA" & " (" & MyNumEmploi & ")",
+                                                              // Body: informations détaillées
+                                                              "<p>Bonjour,</p>
+                                                              <p>La <i>" & MyTypeDemande & "</i> a été refusée par le COSTRA via <b>" & _AppName & "</b> " &
+                                                              "pour le <b>" & vcDemande.SPW & "</b> (emploi <b>" & vcDemande.'Numéro d''emploi' & "</b>)."
+                                                              & "<br><u>Motif : </u> <br>" 
+                                                              & "<i>" &  vcDemande.CommentValidationCOSTRA & "</i>" 
+                                                              & _txtMessage.EmailFooter 
+                                                          )
+                                                      )
+                                                  ),
+                                                  // # Trace chaque changement de statut dans l'historique
+                                                  fxLogStatusHistory(
+                                                      ShowColumns(vcDemande,ID,'Numéro d''emploi'),
+                                                      MyNextStatus_V2.StatusKey,
+                                                      vvUserRole.Key
+                                                  )
+                                              );
+                                              ResetForm(frmGeneralInfo_F);
+                                              Navigate(Screen_Main_M);
+
+                                              ,
+                                              Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)
+                                          );
+                                      );
                                     OnUnavailable: |
                                       =// ## Informe l'utilisateur des informations requises
                                       Notify("Un commentaire est obligatoire pour refuser une demande" ,NotificationType.Warning ,2000);
