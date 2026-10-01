@@ -19,8 +19,8 @@ _Acteur = {
                         _ActionOnForm.Delete;       _ActionOnForm.Save;
                         _ActionOnList.AddDoc;       _ActionOnForm.AddDoc;
                         _ActionOnList.SendDAC;      _ActionOnForm.SendDAC;
-                        _ActionOnForm.DirCandNonRet ; _ActionOnForm.DirCandRetenu;
-                        _ActionOnList.DirCandid ;  //_ActionOnList.DirAudition ; _ActionOnList.DirNoCand;
+                        _ActionOnList.DirCandid ;   
+                        _ActionOnList.DirAudition;  _ActionOnForm.DirCandNonRet ; _ActionOnForm.DirCandRetenu;
                         _ActionOnList.CandAudit;
                         _ActionOnList.CODIDecision; _ActionOnForm.CODICandidatSelect
                     ];
@@ -280,9 +280,8 @@ _FilterToApply = {
     // voir _ActionOnList
     //# CAS 2 : Un filtre est appliqué sur base du ou des status (details) présent dans la variable : vcApplyFilterOnStatus
     _DynamicOnStatus :       "DynamicOnStatus";
+    _DynamicOnStatus_V2:     "_DynamicOnStatus_V2";
     //# CAS 3 : Filtre entièrement paramétrisable dans dlstDemandes_M.Items
-    LotCreation :           "LotCreation";
-    LotCreationCompleted :  "LotCreationCompleted";
     GWSendNote :            "GWSendNote";
     GWSendNoteCompleted :   "GWSendNoteCompleted";
     GWDecision :            "GWDecision";
@@ -661,7 +660,8 @@ _StatusDetailKey = {
 
     //"Validation de la demande par la DAC"
     DACRefusee:         "DACRefusee";
-    DACValidee:         "DACValidee";
+    DACValidee_WithLot:         "DACValidee_WithLot";
+    DACValidee_WithAppel:         "DACValidee_WithAppel";
     DACDVEnPrevision:   "DACDVEnPrevision";
 
     //"Directeurs en instance de réaffectation"
@@ -925,14 +925,35 @@ AddColumns(
             StatutDetail_SortOrder: 10
         };
         {
-            StatusKey:          _StatusDetailKey.DACValidee;
+            StatusKey:          _StatusDetailKey.DACValidee_WithLot;
             StatutDetail:       _StatutDetail.DACValidee;
             StatutGeneral:      _StatutGeneral.DACValidation;
             //ProcessStep:        _ProcessStepDetail.ValidationDAC;
-            ProcessStepKey:  _ProcessStepKey.ValidationDAC;
+            ProcessStepKey:     _ProcessStepKey.ValidationDAC;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
-            LinkedTypeDemande:  [];
+            LinkedTypeDemande:  [   
+                                    _TypeDemande.DemandeDV
+            ];
+            DocumentCategory:   [];
+            Actions:            [];
+            Controls:   {
+                            FormGeneralInfo :   { Visible: true ; Mode: FormMode.View };
+                            FormNextStep :      { Visible: true ; Mode: FormMode.Edit }
+            };
+            StatutDetail_SortOrder: 10
+        };
+        {
+            StatusKey:          _StatusDetailKey.DACValidee_WithAppel;
+            StatutDetail:       _StatutDetail.DACValidee;
+            StatutGeneral:      _StatutGeneral.DACValidation;
+            //ProcessStep:        _ProcessStepDetail.ValidationDAC;
+            ProcessStepKey:     _ProcessStepKey.ValidationDAC;
+            ActionOwner:        _Acteur.DAC;
+            ActionRequired:     false;
+            LinkedTypeDemande:  [
+                                    _TypeDemande.DemandeFF
+            ];
             DocumentCategory:   [];
             Actions:            [];
             Controls:   {
@@ -1038,6 +1059,7 @@ AddColumns(
                                     _DocumentCategory.ReaffectPV
                                 ];
             Actions:            [
+                                    _ActionOnList.Modifier;
                                     _ActionOnForm.AddDoc;
                                     _ActionOnForm.DirCandRetenu;
                                     _ActionOnForm.DirCandNonRet
@@ -1571,7 +1593,7 @@ _tblDemandesFieldCatalog = [
     };
     {ColName : _DemandesFieldName.Lot;   ColDisplayName:"Lot";
         ColRowHeader:true;    ColIsBold:true;        
-        ColWidth : 50;     ColResizable : false;
+        ColWidth : 60;     ColResizable : true;
         ColSortable : true;       
         View : [_Acteur.DAC.Key;_Acteur.DFA.Key] 
     };
@@ -1718,6 +1740,8 @@ _txtMessage = {
         "Un traitement est déjà en cours. Veuillez le terminer avant d'effectuer une autre action.";
     ActionUnsupported :
         "Une erreur inattendue s'est produite (Action non supportée)";
+    UpdateFailled :
+        "La demande n’a pas pu être mise à jour.";
     NoRecipient : "Aucune liste de diffusion DFA n'est configurée pour ce SPW. Le changement est enregistré mais aucune notification n'a pu être envoyée.";
     EmailSubjectPrefix : If(vvAppConfig.ProdEnvironnement; ""; "[TEST] [" & _AppName & "] ");
     EmailFooter : 
@@ -1732,7 +1756,9 @@ _Emoji = {
     _3 : "3️⃣";
     _4 : "4️⃣";
     _5 : "5️⃣";
-    _6 : "6️⃣"
+    _6 : "6️⃣";
+    Refus : "🚫";
+    Approuve : "✅"
 
 };;
 
