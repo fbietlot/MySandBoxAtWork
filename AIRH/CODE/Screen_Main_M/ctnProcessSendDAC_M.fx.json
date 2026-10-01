@@ -147,87 +147,83 @@
                             // (utilisés plus loin pour maintenir le filtre après traitement)
                             MyCurrentStatuses_V2 :  cmpActBtnSendDAC_M.SourceStatusesData
                         },
-                        With(
-                            { 
-                            },
-                            // # Applique le changement de statut à toutes les demandes sélectionnées
-                            ForAll(dlstDemandes_M.SelectedItems,
-                                Patch(AIRH_Demandes,
-                                    ShowColumns( ThisRecord,ID),
-                                    {
-                                        StatusKey:          MyNextStatus_V2.StatusKey,
-                                        'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                        'Statut General':   MyNextStatus_V2.StatutGeneral
-                                    }
-                                )        
-                            );
+                        // # Applique le changement de statut à toutes les demandes sélectionnées
+                        ForAll(dlstDemandes_M.SelectedItems,
+                            Patch(AIRH_Demandes,
+                                ShowColumns( ThisRecord,ID),
+                                {
+                                    StatusKey:          MyNextStatus_V2.StatusKey,
+                                    'Statut Detail':    MyNextStatus_V2.StatutDetail,
+                                    'Statut General':   MyNextStatus_V2.StatutGeneral
+                                }
+                            )        
+                        );
 
-                            Concurrent(
-                                // # envoi de notification pour cette action
-                                ForAll(
-                                    Distinct(dlstDemandes_M.SelectedItems,SPW) As MyCurrentSpw,
-                                    With({MyDemandeSPW : Filter(dlstDemandes_M.SelectedItems,SPW = MyCurrentSpw.Value)},
-                                        With(
-                                            {
-                                                MyTypeDemande :     First(MyDemandeSPW).TypeDemandeValue,
-                                                MyNbDemandes :      Value(CountRows(MyDemandeSPW)),
-                                                MySpw :             MyCurrentSpw.Value,
-                                                MyListeEmploiHtml : Concat( MyDemandeSPW,"<li>" & NumEmploi & "</li>" & Char(10) ),
-                                                MyRecipients :      _DACEmailList()
-                                            },
-                                            If(IsBlank(MyRecipients),
-                                                // Aucune liste DFA configurée pour ce SPW ou pour la DAC
-                                                Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
-                                                // Envoi standard
-                                                Office365Outlook.SendEmailV2(
-                                                    // To  : distribution list
-                                                    MyRecipients,
-                                                    // Subject: notification métier                   
-                                                    _txtMessage.EmailSubjectPrefix 
-                                                        &   MyTypeDemande & " : Nouvelle(s) demande(s) envoyée(s) (" & MySpw & ")",    
-                                                    // Body: informations détaillées
-                                                    "<p>Bonjour,</p> " 
-                                                            &    "<p><i>[" & MyTypeDemande & "]: </i></p>
-                                                            <p>Les demandes suivantes ont été été transmise via <b>" & _AppName & "</b></p>"
-                                                        & "<p><strong>" & MySpw &"</strong></p>
-                                                            <ul>"
-                                                            & MyListeEmploiHtml
-                                                            &"</ul>" 
-                                                    & _txtMessage.EmailFooter 
-                                                );
-                                            )
+                        Concurrent(
+                            // # envoi de notification pour cette action
+                            ForAll(
+                                Distinct(dlstDemandes_M.SelectedItems,SPW) As MyCurrentSpw,
+                                With({MyDemandeSPW : Filter(dlstDemandes_M.SelectedItems,SPW = MyCurrentSpw.Value)},
+                                    With(
+                                        {
+                                            MyTypeDemande :     First(MyDemandeSPW).TypeDemandeValue,
+                                            MyNbDemandes :      Value(CountRows(MyDemandeSPW)),
+                                            MySpw :             MyCurrentSpw.Value,
+                                            MyListeEmploiHtml : Concat( MyDemandeSPW,"<li>" & NumEmploi & "</li>" & Char(10) ),
+                                            MyRecipients :      _DACEmailList()
+                                        },
+                                        If(IsBlank(MyRecipients),
+                                            // Aucune liste DFA configurée pour ce SPW ou pour la DAC
+                                            Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
+                                            // Envoi standard
+                                            Office365Outlook.SendEmailV2(
+                                                // To  : distribution list
+                                                MyRecipients,
+                                                // Subject: notification métier                   
+                                                _txtMessage.EmailSubjectPrefix 
+                                                    &   MyTypeDemande & " : Nouvelle(s) demande(s) envoyée(s) (" & MySpw & ")",    
+                                                // Body: informations détaillées
+                                                "<p>Bonjour,</p> " 
+                                                        &    "<p><i>[" & MyTypeDemande & "]: </i></p>
+                                                        <p>Les demandes suivantes ont été été transmise via <b>" & _AppName & "</b></p>"
+                                                    & "<p><strong>" & MySpw &"</strong></p>
+                                                        <ul>"
+                                                        & MyListeEmploiHtml
+                                                        &"</ul>" 
+                                                & _txtMessage.EmailFooter 
+                                            );
                                         )
                                     )
-                                );
-                                ,       
-                                // # Trace chaque changement de statut dans l'historique
-                                fxLogStatusHistory(
-                                    ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
-                                    MyNextStatus_V2.StatusKey,
-                                    vvUserRole.Key
-                                );
+                                )
                             );
-
-                            // Confirmation utilisateur du traitement réalisé
-                            Notify(
-                                CountRows(dlstDemandes_M.SelectedItems) & " demande(s) a/ont été correctement envoyée(s) à la DAC" ,
-                                NotificationType.Success,2000
-                            );  
-
-                            // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface
-                            Select(BtnLoadDemandes_M);
-
-                            // Marque le processus comme terminé 
-                            // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut
-                            UpdateContext({
-                                vcCurrentWizardStep:        numSendDACSave_M.Value + 1 ,
-                                vcCurrentProcessCompleted:  true,
-                                // Conservation du mécanisme _DynamicOnStatus : 
-                                // les demandes restent visibles après traitement,
-                                // mais désormais dans leur statut cible
-                                vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
-                            }) 
+                            ,       
+                            // # Trace chaque changement de statut dans l'historique
+                            fxLogStatusHistory(
+                                ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
+                                MyNextStatus_V2.StatusKey,
+                                vvUserRole.Key
+                            );
                         );
+
+                        // Confirmation utilisateur du traitement réalisé
+                        Notify(
+                            CountRows(dlstDemandes_M.SelectedItems) & " demande(s) a/ont été correctement envoyée(s) à la DAC" ,
+                            NotificationType.Success,2000
+                        );  
+
+                        // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface
+                        Select(BtnLoadDemandes_M);
+
+                        // Marque le processus comme terminé 
+                        // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut
+                        UpdateContext({
+                            vcCurrentWizardStep:        numSendDACSave_M.Value + 1 ,
+                            vcCurrentProcessCompleted:  true,
+                            // Conservation du mécanisme _DynamicOnStatus : 
+                            // les demandes restent visibles après traitement,
+                            // mais désormais dans leur statut cible
+                            vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
+                        }) 
                     );
                   PaddingBottom: =5
                   PaddingLeft: =5
