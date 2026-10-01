@@ -1,0 +1,36 @@
+- cmpActBtnCreate_F:
+    Control: CanvasComponent
+    ComponentName: cmpActionButton
+    Properties:
+      AccessibleLabel: =
+      Action: =_ActionOnForm.Create
+      ActionState: |
+        =If(IsBlank(txtValidationMsg_F.Text) , // Rend l’action disponible uniquement lorsque le message de validation est vide (aka : tous les champs obligatoires sont bien remplis)
+            Self.StateValues.Available,
+            Self.StateValues.MissingRequiredFields
+        )
+      BasePaletteColor: =RGBA(141, 229, 250, 1)
+      EligibleItemsCount: =Blank()
+      Height: =32
+      Icon: ="Add"
+      InteractionEnabled: =true
+      NextStatus: =_StatusDetailKey.DemandeBrouillon
+      NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
+      OnApplied: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
+      OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            frmGeneralInfo_F.Updates,\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,   \n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n            MyNextStatus_V2.StatusKey,\n            vvUserRole.Key\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(\"La demande n’a pas pu être mise à jour.\",NotificationType.Error,5000)\n    );\n);\n\n\n"
+      OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
+      SourceStatuses: =[""]
+      SourceStatusesData: =Blank()
+      Text: =Self.Action
+      Visible: |-
+        =With({MyAction : Self.Action},
+            // [PATERN]Visibilité pilotée par une matrice de décision :
+            // - les statuts (définis dans App.Formulas) exposent les actions autorisées à ce niveau
+            // - chaque action définit elle-même les rôles autorisés
+            // → le bouton est visible uniquement si l’action est permise par le statut courant et accessible au rôle utilisateur
+            MyAction in vcStatutConfig.Actions
+            && MyAction in vvUserRole.Actions
+        )
+      Width: =100
+      X: =496
+      Y: =476
