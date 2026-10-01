@@ -1,0 +1,103 @@
+- btnDACRefuse_F:
+    Control: Button@0.0.45
+    Properties:
+      AccessibleLabel: ="Bouton Refuser la demande"
+      AlignInContainer: =AlignInContainer.Center
+      Appearance: |-
+        =// Évalue si toutes les informations requises sont bien présente
+        // [Pattern] : l'état visuel (Appearance) porte la règle métier et est réutilisé dans OnSelect comme source de décision
+        // Le bouton reste interactif pour permettre un feedback utilisateur explicite en cas d'action non autorisée
+        If(
+            IsBlank(crdCommentValidDAC_F.Update) , 
+            'ButtonCanvas.Appearance'.Outline,
+            'ButtonCanvas.Appearance'.Primary
+        )
+      BasePaletteColor: =RGBA(249, 83, 109, 1)
+      DisplayMode: |-
+        =DisplayMode.Edit
+        // [Pattern] : Validité pilotée par Appearance avec gestion des cas invalides dans OnSelect
+        // Le bouton reste volontairement actif : l'état visuel (Appearance) reflète l'éligibilité réelle
+        // OnSelect s'appuie sur cet état pour intercepter et gérer les cas non valides avec un feedback utilisateur
+      Icon: ="DismissCircle"
+      LayoutMinHeight: =16
+      LayoutMinWidth: =16
+      OnSelect: |-
+        =If(Self.Appearance = 'ButtonCanvas.Appearance'.Outline,
+            // ## Informe l'utilisateur des informations requises
+            Notify("Un commentaire est obligatoire pour refuser une demande" ,NotificationType.Warning ,2000);
+
+            ,// ## Logique métier de changement de statut
+            With(
+                { 
+                    MyNextStatus: 
+                            {                                     // Statut cible appliqué aux demandes après exécution
+                                Detail:   _StatutDetail.DACRefusee,
+                                General:  _StatutGeneral.Demande
+                            }
+                },
+                UpdateContext({vcDemande : 
+                    // La demande passe en statut "Demande validée par DAC"
+                    Patch(AIRH_Demandes,
+                        vcDemande,
+                        {CommentValidationDAC:  frmNextStep_F.Updates.CommentValidationDAC},
+                        {
+                            'Statut General': MyNextStatus.General,
+                            'Statut Detail':  MyNextStatus.Detail
+                        }
+                    )
+                });
+
+                If(IsEmpty(Errors(AIRH_Demandes)),
+                    Concurrent(
+                         With(
+                            {
+                                MyTypeDemande :     vcDemande.'Type de demande'.Value,
+                                //MyNbDemandes :      Value(CountRows(MyDemandeSPW));
+                                MySpw :             vcDemande.SPW,
+                                //MyListeEmploiHtml : Concat( MyDemandeSPW;"<li>" & NumEmploi & "</li>" & Char(10) );
+                                MyNumEmploi         : vcDemande.'Numéro d''emploi',
+                                MyRecipients :      _DFAEmailList(vcDemande.SPW)
+                            },
+                            If(IsBlank(MyRecipients),
+                                // Aucune liste DFA configurée pour ce SPW ou pour la DAC
+                                Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
+                                // Envoi standard
+                                Office365Outlook.SendEmailV2(
+                                    // To  : distribution list
+                                    MyRecipients,
+                                    // Subject: notification métier                   
+                                    _txtMessage.EmailSubjectPrefix 
+                                        &   MyTypeDemande & " : Votre demande est 🚫refusée (" & MyNumEmploi & ")",    
+                                    // Body: informations détaillées
+                                    "<p>Bonjour,</p> " 
+                                            & "<p><i>[" & MyTypeDemande & "]: </i></p>
+                                            <p>Votre demande a été 🚫refusée par la DAC via <b>" & _AppName & "</b>
+                                            pour le <b>" & MySpw & "</b> (emploi <b>" & MyNumEmploi & "</b>).</p>"
+                                            & _txtMessage.EmailFooter 
+                                );
+                            )
+                        ),
+                       // # Trace chaque changement de statut dans l'historique
+                        fxLogStatusHistory(
+                            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
+                            MyNextStatus.Detail,
+                            vvUserRole.Key
+                        )
+                    )
+                );
+            );
+
+        ResetForm(frmGeneralInfo_F);
+        Navigate(Screen_Main_M);
+        );
+      Text: =_ActionOnForm.DACRefuse
+      Visible: |+
+        =With({MyAction : _ActionOnForm.DACRefuse},
+            // [PATERN]Visibilité pilotée par une matrice de décision :
+            // - les statuts (définis dans App.Formulas) exposent les actions autorisées à ce niveau
+            // - chaque action définit elle-même les rôles autorisés
+            // → le bouton est visible uniquement si l’action est permise par le statut courant et accessible au rôle utilisateur
+            MyAction in vcStatutConfig.Actions
+            && MyAction in vvUserRole.Actions
+        )
+      Width: =120

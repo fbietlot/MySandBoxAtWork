@@ -1,0 +1,84 @@
+- btnDACValidate_F:
+    Control: Button@0.0.45
+    Properties:
+      AccessibleLabel: ="Bouton Valider la demande"
+      AlignInContainer: =AlignInContainer.Center
+      Appearance: ='ButtonCanvas.Appearance'.Primary
+      BasePaletteColor: =RGBA(8, 222, 8, 1)
+      FontWeight: =FontWeight.Normal
+      Icon: ="CheckmarkCircle"
+      LayoutMinHeight: =16
+      LayoutMinWidth: =16
+      OnSelect: |-
+        =With(
+            { 
+                MyNextStatus: 
+                        {                                     // Statut cible appliqué aux demandes après exécution
+                            Detail:   _StatutDetail.DACValidee,
+                            General:  _StatutGeneral.DACValidation
+                        }
+            },
+            UpdateContext({vcDemande : 
+                // La demande passe en statut "Demande validée par DAC"
+                Patch(AIRH_Demandes,
+                    vcDemande,
+                    {CommentValidationDAC:  frmNextStep_F.Updates.CommentValidationDAC},
+                    {
+                        'Statut General':   MyNextStatus.General,
+                        'Statut Detail':    MyNextStatus.Detail
+                    }
+                )
+            });
+
+            If(IsEmpty(Errors(AIRH_Demandes)),
+                    Concurrent(
+                        With(
+                            {
+                                MyTypeDemande :     vcDemande.'Type de demande'.Value,
+                                //MyNbDemandes :      Value(CountRows(MyDemandeSPW));
+                                MySpw :             vcDemande.SPW,
+                                //MyListeEmploiHtml : Concat( MyDemandeSPW;"<li>" & NumEmploi & "</li>" & Char(10) );
+                                MyNumEmploi         : vcDemande.'Numéro d''emploi',
+                                MyRecipients :      _DFAEmailList(vcDemande.SPW)
+                            },
+                            If(IsBlank(MyRecipients),
+                                // Aucune liste DFA configurée pour ce SPW ou pour la DAC
+                                Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
+                                // Envoi standard
+                                Office365Outlook.SendEmailV2(
+                                    // To  : distribution list
+                                    MyRecipients,
+                                    // Subject: notification métier                   
+                                    _txtMessage.EmailSubjectPrefix 
+                                        &   MyTypeDemande & " : Votre demande est ✅approuvée (" & MyNumEmploi & ")",    
+                                    // Body: informations détaillées
+                                    "<p>Bonjour,</p> " 
+                                            & "<p><i>[" & MyTypeDemande & "]: </i></p>
+                                            <p>Votre demande a été ✅approuvée par la DAC via <b>" & _AppName & "</b>
+                                            pour le <b>" & MySpw & "</b> (emploi <b>" & MyNumEmploi & "</b>).</p>"
+                                            & _txtMessage.EmailFooter 
+                                );
+                            )
+                        ),
+                        // # Trace chaque changement de statut dans l'historique
+                        fxLogStatusHistory(
+                            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
+                            MyNextStatus.Detail,
+                            vvUserRole.Key
+                        );
+                    )
+                );
+            ResetForm(frmGeneralInfo_F);
+            Navigate(Screen_Main_M);
+        )
+      Text: =_ActionOnForm.DACValidate
+      Visible: |-
+        =With({MyAction : _ActionOnForm.DACValidate},
+            // [PATERN]Visibilité pilotée par une matrice de décision :
+            // - les statuts (définis dans App.Formulas) exposent les actions autorisées à ce niveau
+            // - chaque action définit elle-même les rôles autorisés
+            // → le bouton est visible uniquement si l’action est permise par le statut courant et accessible au rôle utilisateur
+            MyAction in vcStatutConfig.Actions
+            && MyAction in vvUserRole.Actions
+        )
+      Width: =120
