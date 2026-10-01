@@ -5,78 +5,80 @@
       AccessibleLabel: ="Bouton de création d'un lot"
       Action: =_ActionOnList.CreateLot
       ActionState: |-
-        =// Détermine l'état métier courant de l'action.
-        // L'action est considérée comme :
-        // • Applied     si le processus associé est déjà actif ;
-        // • Available   lorsqu'au moins une demande éligible est disponible ;
-        // • Unavailable dans tous les autres cas.
+        =// Détermine l'état métier du processus.
+        // Priorité des états :
+        //  1. Ce processus est déjà actif.
+        //  2. Un autre processus est déjà en cours.
+        //  3. Aucune demande ne peut actuellement être traitée.
+        //  4. Le processus peut être lancé.
         If(
             vcCurrentProcess = Self.Action,
-            Self.StateValues.Applied,
-            If(vcCurrentProcess <> Blank(),
-                Self.StateValues.Unavailable,
-                If(
-                    !IsEmpty(
-                        Filter(
-                            ccDemandes_V2,
-                            Statut_x0020_Detail = _StatutDetail.DACValidee
-                        )
-                    ),
-                    Self.StateValues.Available,
-                    Self.StateValues.Unavailable
-                )
-            )
+                Self.StateValues.ProcessAlreadyRunning,
+
+            !IsBlank(vcCurrentProcess),
+                Self.StateValues.AnotherProcessIsRunning,
+
+            Self.EligibleItemsCount = 0,
+                Self.StateValues.NoEligibleItems,
+
+            //Default
+                Self.StateValues.Available
         )
       BasePaletteColor: =
-      EligibleItemsCount: =CountRows( Filter( ccDemandes_V2,Statut_x0020_Detail in [ _StatutDetail.DACValidee ]))
+      EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
       Height: =32
       Icon: ="AppsList"
       InteractionEnabled: =true
-      NextStatus: =Blank()
-      OnApplied: =Select(btnLotCancel_M); //Annler Le processus
+      NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
+      NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
+      OnAlreadyRunning: =Select(btnLotCancel_M); //Annler Le processus
       OnAvailable: |-
         =// ## Logique métier de lancemnt d'un process
         With(
             {
                 MyProcess :         Self.Action,
-                MyFilterToApply :   _FilterToApply.LotCreation,
-                MyCurrentStatut :   [_StatutDetail.DACValidee]
+                MyFilterToApply :   _FilterToApply._DynamicOnStatus_V2,
+                MyCurrentStatut :   Self.SourceStatusesData
             },
 
             //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
-            ClearCollect(ccValidForTypeDemande,Distinct( Filter( _TypeDemandeConfigTable,Self.Action in Actions),Type));
+            ClearCollect(ccValidForTypeDemande,
+                Distinct(
+                    Filter( _TypeDemandeConfigTable,Self.Action in Actions),
+                    Type
+                )
+            );
 
             Reset(inpNumLot_M);
             Reset(dteDirReaffFinConsul_M);
-            UpdateIf(ccDemandes_V2,
+
+            // Prepare la selection par defaut
+            UpdateIf(ccDemandes,
                         true,
-                        { RecordSelected: Statut_x0020_Detail in MyCurrentStatut}
-            ); // Prepare la selection par defaut
+                        { RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+            ); 
             Select(btnGridClearSelect_M);
+
             UpdateContext({
                 vcShowDirReaffFinConsul :   false,  // Reset step visibility (default hidden until selection or lot creation)
-                vcCurrentProcess :          MyProcess,
-                vcCurrentWizardStep :      1,
-                vcApplyFilter :             MyFilterToApply
+                vcCurrentProcess :                  MyProcess,
+                vcCurrentWizardStep :               1,
+                vcCurrentProcessCompleted :         false,
+                vcCurrentWizardStepAfterSelect :    0, // La plus part du temps après la selection d'une demande dans la liste on passe à l'étape 2 (sinon modifier cette valuer)
+                vcApplyFilter :                     MyFilterToApply,
+                vcApplyFilterOnStatus_V2:           Self.SourceStatusesData.StatusKey
             });
         )
-      OnUnavailable: |-
-        =// ## Informe l'utilisateur si l'action en masse n'est pas autorisée pour la sélection courante
-        If(vcCurrentProcess <> Self.Action,
-            Notify(_txtMessage.ProcessOnGoing,NotificationType.Warning ,2000),
-            Notify(_txtMessage.SelectionProcessNoEligibleItem & Concat(Self.SourceStatuses,Value," | ") ,NotificationType.Warning ,2000)
-        );
-      SourceStatuses: =[_StatutDetail.DACValidee]
+      OnUnavailable: =Select(btnGenericActionUnsupported_M)
+      SourceStatuses: =[_StatusDetailKey.DACValidee_WithLot]
+      SourceStatusesData: |-
+        =ForAll(Self.SourceStatuses As MySourceStatus,
+            LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+        )
       Text: =Self.Action
       Visible: |-
-        =With({MyAction : Self.Action},
-            /*
-            [PATERN]Visibilité pilotée par une matrice de décision :
-             - les statuts (définis dans App.Formulas) exposent les actions autorisées à ce niveau
-             - chaque action définit elle-même les rôles autorisés
-             → le bouton est visible uniquement si l’action est permise par le statut courant et accessible au rôle utilisateur
-            */
-            //MyAction in vcStatutConfig.Actions &&
+        =With({MyAction :Self.Action},
+            // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
             MyAction in vvUserRole.Actions
         )
       Width: =110
