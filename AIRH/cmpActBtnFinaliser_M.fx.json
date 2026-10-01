@@ -1,0 +1,82 @@
+- cmpActBtnFinaliser_M:
+    Control: CanvasComponent
+    ComponentName: cmpActionButton
+    Properties:
+      AccessibleLabel: ="Bouton Modifier la Demande"
+      Action: =_ActionOnList.Finaliser
+      ActionState: |-
+        =// Détermine l'état métier du processus.
+        // Priorité des états :
+        //  1. Ce processus est déjà actif.
+        //  2. Un autre processus est déjà en cours.
+        //  3. Aucune demande ne peut actuellement être traitée.
+        //  4. Le processus peut être lancé.
+        If(
+            vcCurrentProcess = Self.Action,
+                Self.StateValues.ProcessAlreadyRunning,
+
+            !IsBlank(vcCurrentProcess),
+                Self.StateValues.AnotherProcessIsRunning,
+
+            Self.EligibleItemsCount = 0,
+                Self.StateValues.NoEligibleItems,
+
+            //Default
+                Self.StateValues.Available
+        )
+      BasePaletteColor: =
+      EligibleItemsCount: =CountRows( Filter( ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
+      Height: =32
+      Icon: ="Edit"
+      InteractionEnabled: =true
+      NextStatus: =Blank()
+      NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
+      OnAlreadyRunning: =Select(btnGenericExitProcess_M)
+      OnAvailable: |-
+        =// Logique métier de lancemnt d'un process
+        With(
+            {
+                MyProcess :         _ActionOnList.Finaliser,
+                MyFilterToApply :   _FilterToApply._DynamicOnStatus_V2,
+                MyCurrentStatut :   Self.SourceStatusesData
+            },
+
+            //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
+            ClearCollect(ccValidForTypeDemande,
+                Distinct(
+                    Filter(_TypeDemandeConfigTable,Self.Action in Actions),
+                    Type
+                )
+            );
+
+            // Prepare la selection par defaut
+            UpdateIf(ccDemandes,
+                        true,
+                        { RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+            );
+            Select(btnGridClearSelect_M);
+
+            UpdateContext({
+                vcCurrentProcess :                  MyProcess,
+                vcCurrentWizardStep :               0,
+                vcCurrentProcessCompleted :         false,
+                vcCurrentWizardStepAfterSelect :    0, // La plus part du temps après la selection d'une demande dans la liste on passe à l'étape 2 (sinon modifier cette valuer)
+                vcApplyFilter :                     MyFilterToApply,
+                vcApplyFilterOnStatus_V2:           Self.SourceStatusesData.StatusKey
+            });
+        )
+      OnUnavailable: =Select(btnGenericActionUnsupported_M)
+      SourceStatuses: =[ _StatusDetailKey.DemandeBrouillon , _StatusDetailKey.DACRefusee]
+      SourceStatusesData: |-
+        =ForAll(Self.SourceStatuses As MySourceStatus,
+            LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+        )
+      Text: =Self.Action
+      Visible: |-
+        =With({MyAction :Self.Action},
+            // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+            MyAction in vvUserRole.Actions
+        )
+      Width: =160
+      X: =496
+      Y: =476
