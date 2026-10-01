@@ -225,7 +225,7 @@
                                 // Conservation du mécanisme _DynamicOnStatus : 
                                 // les demandes restent visibles après traitement,
                                 // mais désormais dans leur statut cible
-                                vcApplyFilterOnStatus_v2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
+                                vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
                             }) 
                         );
                     );
