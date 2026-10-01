@@ -202,7 +202,67 @@
                   DisplayMode: =If(vcCurrentWizardStep = numSendGWSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                   FontWeight: =FontWeight.Bold
                   Layout: =ButtonLayout.TextOnly
-                  OnSelect: "=With({\n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatusDetail : cmpActBtnSendGW.NextStatus, \n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MyCurrentStatuses : cmpActBtnSendGW.SourceStatuses\n    },\n    With(\n        { \n            // Reconstitue l'objet statut complet attendu par le modèle de données à partir du statut détail\n            MyNextStatus:                                 \n                {                                     \n                    Detail:   MyNextStatusDetail,\n                    General:  LookUp(_StatutConfigTable,StatutDetail = MyNextStatusDetail).StatutGeneral\n                }\n        },\n        // # Applique à toutes les demandes sélectionnées\n        //      - le changement de statut  \n        //      - les champs d'entrée complémentaires\n        ForAll(dlstDemandes_M.SelectedItems,\n            Patch(AIRH_Demandes,\n                ShowColumns( ThisRecord,ID),\n                {\n                    'Statut General':   MyNextStatus.General,\n                    'Statut Detail':    MyNextStatus.Detail\n                },\n                {\n                    DateGWSend: dteSendGWDate_M.SelectedDate\n                }\n            )        \n        );\n    \n\n    Concurrent(\n        // # envoi de notification pour cette action\n        // Pas de notification \n        false\n        ,       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus,\n            vvUserRole.Key\n        );\n    );\n\n        // Confirmation utilisateur du traitement réalisé\n        Notify(\n            CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) a/ont été correctement envoyée(s) au GW\" ,\n            NotificationType.Success,2000\n        );     \n\n            // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n        Select(BtnLoadDemandes_M);\n        // Marque le processus comme terminé \n        // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n                UpdateContext({\n            vcCurrentWizardStep:       numSendGWSave_M.Value + 1 ,\n            vcCurrentProcessCompleted:  true,\n            \n            // Conservation du mécanisme _DynamicOnStatus : \n            // les demandes restent visibles après traitement,\n            // mais désormais dans leur statut cible\n            vcApplyFilterOnStatus:      Table([cmpActBtnSendGW.NextStatus] , MyCurrentStatuses)\n        }) \n                \n\n\n)\n);\n\n"
+                  OnSelect: |+
+                    =With({
+                            // Statut cible 
+                            //(à priori déclaré sur le bouton de lancement du processus)
+                            MyNextStatus_V2:    cmpActBtnSendGW.NextStatusData,
+                            // Statuts depuis lesquels le processus peut être exécuté 
+                            // (à priori déclaré sur le bouton de lancement du processus)
+                            // (utilisés plus loin pour maintenir le filtre après traitement)
+                            MyCurrentStatuses_V2:   cmpActBtnSendGW.SourceStatusesData
+                        },
+
+                        // # Applique à toutes les demandes sélectionnées
+                        //      - le changement de statut  
+                        //      - les champs d'entrée complémentaires
+                        ForAll(dlstDemandes_M.SelectedItems,
+                            Patch(AIRH_Demandes,
+                                ShowColumns( ThisRecord,ID),
+                                {
+                                    StatusKey:          MyNextStatus_V2.StatusKey,
+                                    'Statut Detail':    MyNextStatus_V2.StatutDetail,
+                                    'Statut General':   MyNextStatus_V2.StatutGeneral
+                                },
+                                {
+                                    DateGWSend: dteSendGWDate_M.SelectedDate
+                                }
+                            )        
+                        );
+
+                        Concurrent(
+                            // # envoi de notification pour cette action
+                            // Pas de notification 
+                            false
+                            ,       
+                            // # Trace chaque changement de statut dans l'historique
+                            fxLogStatusHistory(
+                                ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
+                                MyNextStatus_V2.StatusKey,
+                                vvUserRole.Key
+                            );
+                        );
+
+                        // Confirmation utilisateur du traitement réalisé
+                        Notify(
+                            CountRows(dlstDemandes_M.SelectedItems) & " demande(s) a/ont été correctement envoyée(s) au GW" ,
+                            NotificationType.Success,2000
+                        );     
+
+                        // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface
+                        Select(BtnLoadDemandes_M);
+
+                        // Marque le processus comme terminé 
+                        // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut
+                        UpdateContext({
+                            vcCurrentWizardStep:       numSendGWSave_M.Value + 1 ,
+                            vcCurrentProcessCompleted:  true,
+                            // Conservation du mécanisme _DynamicOnStatus : 
+                            // les demandes restent visibles après traitement,  mais désormais dans leur statut cible
+                            vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
+                        })
+                    )
+
                   PaddingBottom: =5
                   PaddingLeft: =5
                   PaddingRight: =12
@@ -213,7 +273,7 @@
                   RadiusTopRight: =4
                   Size: =14
                   Text: |+
-                    =With({MyStepNumber : numSendGWDate_M.Value},
+                    =With({MyStepNumber : numSendGWSave_M.Value},
                         Switch(MyStepNumber,
                             1,_Emoji._1,
                             2,_Emoji._2,
