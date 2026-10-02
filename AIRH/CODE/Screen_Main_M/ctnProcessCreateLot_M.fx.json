@@ -49,14 +49,14 @@
                   BorderColor: =App.Theme.Colors.Darker10
                   BorderStyle: =BorderStyle.Solid
                   BorderThickness: =0
-                  Color: =If(vcCurrentWizardStep= 1 ,  App.Theme.Colors.Darker10, Color.Silver)
+                  Color: =If(vcWizardStep= 1 ,  App.Theme.Colors.Darker10, Color.Silver)
                   FontWeight: =FontWeight.Bold
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   PaddingBottom: =3
                   PaddingTop: =3
                   Size: =14
-                  Text: =_Emoji._1 & If(vcCurrentWizardStep > 1 , "✅","")  & " Sélectionner les demandes"
+                  Text: =_Emoji._1 & If(vcWizardStep > 1 , "✅","")  & " Sélectionner les demandes"
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - btnLotSelectAll_M.Width
             - btnLotSelectAll_M:
                 Control: ModernButton@1.0.0
@@ -69,7 +69,7 @@
                   OnSelect: |-
                     =UpdateContext({vcDemandesEvent:"SetSelection"&Text(Rand())});
                     UpdateContext({
-                        vcCurrentWizardStep: 2
+                        vcWizardStep: 2
                     });
                   PaddingBottom: =5
                   PaddingLeft: =5
@@ -105,14 +105,14 @@
                   BorderColor: =App.Theme.Colors.Darker10
                   BorderStyle: =BorderStyle.Solid
                   BorderThickness: =0
-                  Color: =If(vcCurrentWizardStep = 2 ,  App.Theme.Colors.Darker10, Color.Silver)
+                  Color: =If(vcWizardStep = 2 ,  App.Theme.Colors.Darker10, Color.Silver)
                   FontWeight: =FontWeight.Bold
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   PaddingBottom: =3
                   PaddingTop: =3
                   Size: =14
-                  Text: =_Emoji._2 & If(vcCurrentWizardStep > 2 , "✅","")  & " Définir Numéro de Lot"
+                  Text: =_Emoji._2 & If(vcWizardStep > 2 , "✅","")  & " Définir Numéro de Lot"
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - inpNumLot_M.Width
             - inpNumLot_M:
                 Control: ModernTextInput@1.1.2
@@ -122,15 +122,15 @@
                   OnChange: |-
                     =If(!IsBlank( Self.Text), // Trigger step progression only after the required input is filled
                         UpdateContext({
-                            vcCurrentWizardStep:  // Set next step depending on whether the A4-dependent step is applicable (visible or skipped)
-                                If(ctnDateFinConsult_M.Visible,3, 4) 
+                            vcWizardStep:  // Set next step depending on whether the A4-dependent step is applicable (visible or skipped)
+                                If(ctnCreateLotDirReaffFinConsult_M.Visible,3, 4) 
                         })
                     )
                   Placeholder: ="20**/**"
                   TriggerOutput: =TriggerOutput.Delayed
-                  Visible: =vcCurrentWizardStep >= 2
-                  Width: =dteDirReaffFinConsul_M.Width
-      - ctnDateFinConsult_M:
+                  Visible: =vcWizardStep >= 2
+                  Width: =steCreateLotDirReaffFinConsult_M.Width
+      - ctnCreateLotDirReaffFinConsult_M:
           Control: GroupContainer@1.5.0
           Variant: AutoLayout
           Properties:
@@ -155,22 +155,22 @@
             Width: =414
             Y: =40
           Children:
-            - Text5_8:
+            - lblCreateLotDirReaffFinConsult_M:
                 Control: ModernText@1.0.0
                 Properties:
                   BorderColor: =App.Theme.Colors.Darker10
                   BorderStyle: =BorderStyle.Solid
                   BorderThickness: =0
-                  Color: =If(vcCurrentWizardStep= 3 ,  App.Theme.Colors.Darker10, Color.Silver)
+                  Color: =If(vcWizardStep= 3 ,  App.Theme.Colors.Darker10, Color.Silver)
                   FontWeight: =FontWeight.Bold
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                   PaddingBottom: =3
                   PaddingTop: =3
                   Size: =14
-                  Text: =_Emoji._3 & If(vcCurrentWizardStep > 3 , "✅","")  & "Date Fin consultation"
+                  Text: =_Emoji._3 & If(vcWizardStep > 3 , "✅","")  & "Date Fin consultation"
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - inpNumLot_M.Width
-            - dteDirReaffFinConsul_M:
+            - steCreateLotDirReaffFinConsult_M:
                 Control: ModernDatePicker@1.0.2
                 Properties:
                   Format: =DatePickerFormat.Short
@@ -179,13 +179,13 @@
                   OnChange: |-
                     =If(!IsBlank( Self.SelectedDate), // Trigger step progression only after the required input is filled
                         UpdateContext({
-                            vcCurrentWizardStep: 4
+                            vcWizardStep: 4
                         })
                     )
                   Placeholder: ="Choisir une date"
-                  Visible: =vcCurrentWizardStep >= 3
+                  Visible: =vcWizardStep >= 3
                   Width: =150
-      - Container7_4:
+      - ctnCreateLotSave_M:
           Control: GroupContainer@1.5.0
           Variant: AutoLayout
           Properties:
@@ -201,16 +201,120 @@
             Width: =414
             Y: =40
           Children:
-            - btnProcessDoCreateLot_M:
+            - btnCreateLotSave_M:
                 Control: ModernButton@1.0.0
                 Properties:
                   Align: =Align.Left
-                  Appearance: =If(vcCurrentWizardStep = 4 ,    ButtonAppearance.Primary,ButtonAppearance.Outline)
-                  Color: =If(vcCurrentWizardStep= 4 ,  Color.White, Color.Gray)
-                  DisplayMode: =If(vcCurrentWizardStep = 4 ,DisplayMode.Edit, DisplayMode.Disabled)
+                  Appearance: =If(vcWizardStep = 4 ,    ButtonAppearance.Primary,ButtonAppearance.Outline)
+                  Color: =If(vcWizardStep= 4 ,  Color.White, Color.Gray)
+                  DisplayMode: =If(vcWizardStep = 4 ,DisplayMode.Edit, DisplayMode.Disabled)
                   FontWeight: =FontWeight.Bold
                   Layout: =ButtonLayout.TextOnly
-                  OnSelect: "=// Create the 'Lot' by updating each selected 'Demande' to its next status (A4 path vs standard path)\nForAll(dlstDemandes_M.SelectedItems,\n    Patch(AIRH_Demandes,\n        ShowColumns( ThisRecord,ID),\n        If(ThisRecord.Rang = \"A4\",\n            // Route 'Demande' through the director reaffectation consultation (with end date)\n            {\n                Lot : inpNumLot_M.Text,\n                'Statut General': _StatutGeneral.DirReaff,\n                'Statut Detail': _StatutDetail.DirReaffConsult,\n                DateDirReaffFinConsult: dteDirReaffFinConsul_M.SelectedDate\n            },\n            // Route 'Demande' through the standard DV validation pipeline\n            {\n                Lot : inpNumLot_M.Text,\n                'Statut General': _StatutGeneral.DACValidation,\n                'Statut Detail': _StatutDetail.DACDVEnPrevision\n            }\n        )\n    )\n);\n\n// Preserve the A4-dependent step after selection reset (lot content drives visibility, not current selection)\nIf(ctnDateFinConsult_M.Visible,\n    UpdateContext({vcShowDirReaffFinConsul: true})\n);\n\n\n// Notify stakeholders that the DV 'Lot' has been created (recipients grouped by SPW)\nWith(\n    {\n        MyDistributionList : // Build the mailing list by expanding each distinct SPW to its distribution emails\n            Concat(\n                ForAll(\n                    Distinct(dlstDemandes_M.SelectedItems,SPW),\n                    { \n                        SPW : ThisRecord.Value,\n                        Emails :  _DFAEmailList(ThisRecord.Value)\n                    }\n                ),\n                Emails,\n                \";\"\n        )\n    },\n    Office365Outlook.SendEmailV2(\n        MyDistributionList,                     // To: SPW distribution lists for impacted 'Demandes'\n        _txtMessage.EmailSubjectPrefix &   \"Constitution Lot DV\",     // Subject: DV lot creation notification\n        // Body: include the A4 consultation deadline only when applicable        \n        \"Bonjour,<br><br>\" &\n        If(! vcShowDirReaffFinConsul,\n            \"Les emplois pour la demande DV ont été sélectionnés. \n            <br>Toute nouvelle demande fera partie d'une demande de DV future\n            \" \n            ,//@Else\n            \"Les emplois pour la demande DV ont été sélectionnés. \n            <br>Toute nouvelle demande fera partie d'une demande de DV future. \n            <br>Les Directeurs en instance de réaffectation peuvent postuler jusqu'au \" & dteDirReaffFinConsul_M.SelectedDate &\". \n            <br>Merci de revenir vers nous après cette date. \n            \"\n        )                \n        & _txtMessage.EmailFooter \n    );\n);\n\n\n// Write one status history entry per updated 'Demande' (same branching rules as the main update)\nPatch(AIRH_Status_History,\n    // Pre-create the required number of history rows\n    ForAll(\n        Sequence(CountRows(dlstDemandes_M.SelectedItems)),\n        Defaults(AIRH_Status_History)\n    ),\n    // Fill each history row with the status change details\n    ForAll(\n        dlstDemandes_M.SelectedItems,\n        {\n\n            Titre:          ThisRecord.NumEmploi,\n            ID_Demande:     ThisRecord.ID,\n            StatutGeneral:  If(ThisRecord.Rang = \"A4\",_StatutGeneral.DirReaff, _StatutGeneral.DACValidation),\n            StatutDetail:  If(ThisRecord.Rang = \"A4\",_StatutDetail.DirReaffConsult, _StatutDetail.DACDVEnPrevision),\n            Acteur:         _Acteur.DAC.Key\n        }\n    )\n);\n        \n// Reload UI data to reflect the newly created 'Lot'\nSelect(BtnLoadDemandes_M);\n\n// Advance the wizard to the confirmation/next stage\nUpdateContext({\n    vcCurrentWizardStep: 5,\n    vcApplyFilter:_FilterToApply.LotCreationCompleted\n})"
+                  OnSelect: |-
+                    =With({
+                            // Statut cible 
+                            //(à priori déclaré sur le bouton de lancement du processus)
+                            // MyNextStatus_V2:        cmpActBtnSendDAC_M.NextStatusData;
+                            // Statuts depuis lesquels le processus peut être exécuté 
+                            // (à priori déclaré sur le bouton de lancement du processus)
+                            // (utilisés plus loin pour maintenir le filtre après traitement)
+                            MyCurrentStatuses_V2 :  cmpActBtnSendDAC_M.SourceStatusesData
+                        },
+
+                        // Create the 'Lot' by updating each selected 'Demande' to its next status (A4 path vs standard path)
+                        ForAll(dlstDemandes_M.SelectedItems As MyDemande,
+                            With({
+                                MyDemandeNextStatus:        
+                                    If(MyDemande.Rang = "A4",
+                                    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DirReaffConsult),
+                                    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DACDVEnPrevision)
+                                    )
+                                },
+
+                                Patch(AIRH_Demandes,
+                                    ShowColumns( MyDemande,ID),
+                                    {
+                                        StatusKey:          MyDemandeNextStatus.StatusKey,
+                                        'Statut Detail':    MyDemandeNextStatus.StatutDetail,
+                                        'Statut General':   MyDemandeNextStatus.StatutGeneral
+                                    },
+                                    If(MyDemande.Rang = "A4",
+                                        // Route 'Demande' through the director reaffectation consultation (with end date)
+                                        {
+                                            Lot : inpNumLot_M.Text,
+                                            DateDirReaffFinConsult: steCreateLotDirReaffFinConsult_M.SelectedDate
+                                        },
+                                        // Route 'Demande' through the standard DV validation pipeline
+                                        {
+                                            Lot : inpNumLot_M.Text
+                                        }
+                                    )
+                                );
+
+                               // # Trace chaque changement de statut dans l'historique
+                                fxLogStatusHistory(
+                                    ShowColumns(vcDemande,ID,'Numéro d''emploi'),
+                                    MyDemandeNextStatus.StatusKey,
+                                    vvUserRole.Key
+                                )
+                            )
+                        );
+
+                        // Preserve the A4-dependent step after selection reset (lot content drives visibility, not current selection)
+                        If(ctnCreateLotDirReaffFinConsult_M.Visible,
+                            UpdateContext({vcShowDirReaffFinConsul: true})
+                        );
+
+                        // Notify stakeholders that the DV 'Lot' has been created (recipients grouped by SPW)
+                        With(
+                            {
+                                MyDistributionList : // Build the mailing list by expanding each distinct SPW to its distribution emails
+                                    Concat(
+                                        ForAll(
+                                            Distinct(dlstDemandes_M.SelectedItems,SPW),
+                                            { 
+                                                SPW : ThisRecord.Value,
+                                                Emails :  _DFAEmailList(ThisRecord.Value)
+                                            }
+                                        ),
+                                        Emails,
+                                        ";"
+                                )
+                            },
+                            Office365Outlook.SendEmailV2(
+                                MyDistributionList,                     // To: SPW distribution lists for impacted 'Demandes'
+                                _txtMessage.EmailSubjectPrefix &   "Constitution Lot DV",     // Subject: DV lot creation notification
+                                // Body: include the A4 consultation deadline only when applicable        
+                                "Bonjour,<br><br>" &
+                                If(! vcShowDirReaffFinConsul,
+                                    "Les emplois pour la demande DV ont été sélectionnés. 
+                                    <br>Toute nouvelle demande fera partie d'une demande de DV future
+                                    " 
+                                    ,//@Else
+                                    "Les emplois pour la demande DV ont été sélectionnés. 
+                                    <br>Toute nouvelle demande fera partie d'une demande de DV future. 
+                                    <br>Les Directeurs en instance de réaffectation peuvent postuler jusqu'au " & steCreateLotDirReaffFinConsult_M.SelectedDate &". 
+                                    <br>Merci de revenir vers nous après cette date. 
+                                    "
+                                )                
+                                & _txtMessage.EmailFooter 
+                            );
+                        );
+
+                        // Reload UI data to reflect the newly created 'Lot'
+                        Select(BtnLoadDemandes_M);
+
+                        // Marque le processus comme terminé 
+                        // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut
+                        UpdateContext({
+                            vcWizardStep:        5 ,
+                            vcWizardCompleted:  true,
+                            // Conservation du mécanisme _DynamicOnStatus : 
+                            // les demandes restent visibles après traitement,
+                            // mais désormais dans leur statut cible
+                            vcApplyFilterOnStatus_V2:      Table({StatusKey :_StatusDetailKey.DirReaffConsult},{StatusKey :_StatusDetailKey.DACDVEnPrevision} , MyCurrentStatuses_V2.StatusKey)
+                        }) 
+                    );
                   PaddingBottom: =5
                   PaddingLeft: =5
                   PaddingRight: =12
@@ -220,10 +324,10 @@
                   RadiusTopLeft: =4
                   RadiusTopRight: =4
                   Size: =14
-                  Text: =If(ctnDateFinConsult_M.Visible, _Emoji._4 , _Emoji._5) & If(vcCurrentWizardStep > 4 , "✅","")  & " Constituer le lot"
+                  Text: =If(ctnCreateLotDirReaffFinConsult_M.Visible, _Emoji._4 , _Emoji._5) & If(vcWizardStep > 4 , "✅","")  & " Constituer le lot"
                   VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
-      - Container7_5:
+      - ctnCreateLotCancel_M:
           Control: GroupContainer@1.5.0
           Variant: AutoLayout
           Properties:
@@ -245,18 +349,7 @@
                   Align: =Align.Left
                   FontWeight: =FontWeight.Bold
                   Layout: =ButtonLayout.TextOnly
-                  OnSelect: |-
-                    =Select(btnStopProcess_M);
-
-                    /*
-
-                    Select(btnGridClearSelect_M);; // Reset de la selection
-                    UpdateContext({
-                        vcCurrentProcess:Blank();
-                        vcCurrentWizardStep: Blank();
-                        vcApplyFilter : Blank()
-                    });;
-                    */
+                  OnSelect: =Select(btnGenericExitProcess_M);
                   PaddingBottom: =5
                   PaddingLeft: =5
                   PaddingRight: =12
@@ -266,6 +359,6 @@
                   RadiusTopLeft: =4
                   RadiusTopRight: =4
                   Size: =14
-                  Text: =If(vcCurrentWizardStep = 5, "Terminer","Annuler")
+                  Text: =If(vcWizardStep = 5, "Terminer","Annuler")
                   VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
