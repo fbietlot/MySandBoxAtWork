@@ -3164,7 +3164,7 @@ Screens:
                                                 DisplayName: |-
                                                   ="📅 Audition"
                                                 Required: =false
-                                                Update: =dteDateCandidAudition_F.SelectedDate
+                                                Update: =dteDateCandAudition_F.SelectedDate
                                                 Visible: |-
                                                   =// Visible :
                                                   //  - pour les statuts où cette échéance doit encore être consultée ou complétée.
@@ -3196,7 +3196,7 @@ Screens:
                                                       Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                                       Width: =Parent.Width - 48
                                                       X: =24
-                                                      Y: =dteDateCandidAudition_F.Y + dteDateCandidAudition_F.Height
+                                                      Y: =dteDateCandAudition_F.Y + dteDateCandAudition_F.Height
                                                 - StarVisible8_1:
                                                     Control: ModernText@1.0.0
                                                     Properties:
@@ -3236,7 +3236,7 @@ Screens:
                                                       Width: =Parent.Width - 10
                                                       X: =lblLot_F.X
                                                       Y: =lblLot_F.Y
-                                                - dteDateCandidAudition_F:
+                                                - dteDateCandAudition_F:
                                                     Control: ModernDatePicker@1.0.2
                                                     Properties:
                                                       AccessibleLabel: =Parent.DisplayName
@@ -3798,7 +3798,10 @@ Screens:
                                       Navigate(Screen_Main_M);
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: =Blank()
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Coalesce(vcStatutConfig.ButtonText.Cancel,If(vcScreenIsReadOnly, "Fermer","Annuler"))
                                     Width: =100
                                     X: =496
@@ -3859,7 +3862,10 @@ Screens:
                                       );
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: =Blank()
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction : Self.Action},
@@ -3886,13 +3892,16 @@ Screens:
                                     Icon: ="Delete"
                                     InteractionEnabled: =true
                                     NextStatus: =Blank()
-                                    NextStatusData: =Blank()
+                                    NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     OnAvailable: |
                                       =UpdateContext({vcShowDeleteConfirm: true});
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: =Blank()
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction : Self.Action},
@@ -3970,7 +3979,10 @@ Screens:
 
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: =Blank()
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Self.Action
                                     Visible: |-
                                       =If(vcScreenIsReadOnly,false,
@@ -4009,7 +4021,10 @@ Screens:
                                     OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,  \n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            },\n            frmGeneralInfo_F.Updates\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    //MyNbDemandes :      Value(CountRows(MyDemandeSPW));\n                    MySpw :             vcDemande.SPW,\n                    MyListeEmploiHtml :  \"<li>\" & vcDemande.'Numéro d''emploi' & \"</li>\",\n                    MyNumEmploi :       vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : distribution list\n                        MyRecipients,\n                        // Subject: notification métier                   \n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Nouvelle(s) demande(s) envoyée(s) (\" & MySpw & \")\",   \n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p> \" \n                                &    \"<p><i>[\" & MyTypeDemande & \"]: </i></p>\n                                <p>La/Les demande(s) suivante(s) ont été été transmise(s) via <b>\" & _AppName & \"</b></p>\"\n                            & \"<p><strong>\" & MySpw &\"</strong></p>\n                                <ul>\"\n                                & MyListeEmploiHtml\n                                &\"</ul>\" \n            \n                        & _txtMessage.EmailFooter \n                    );\n                )\n               \n            ),\n        \n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus_V2.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: '=Blank() '
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction : Self.Action},
@@ -4112,7 +4127,10 @@ Screens:
                                       =// ## Informe l'utilisateur des informations requises
                                       Notify("Un commentaire est obligatoire pour refuser une demande" ,NotificationType.Warning ,2000);
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: =Blank()
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction : Self.Action},
@@ -4214,7 +4232,10 @@ Screens:
                                       );
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: =Blank()
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction : Self.Action},
@@ -4312,7 +4333,10 @@ Screens:
                                       );
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[_StatusDetailKey.DirReaffAuditCODI]
-                                    SourceStatusesData: =Blank()
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction : Self.Action},
@@ -4410,7 +4434,10 @@ Screens:
                                       );
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[_StatusDetailKey.DirReaffAuditCODI]
-                                    SourceStatusesData: =Blank()
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
+                                      )
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction : Self.Action},
@@ -4514,24 +4541,8 @@ Screens:
                                       Notify("Un commentaire est obligatoire pour refuser une demande" ,NotificationType.Warning ,2000);
                                     SourceStatuses: =[_StatusDetailKey.NGWAuGW]
                                     SourceStatusesData: |-
-                                      =Table(
-                                          {
-                                              StatusKey:          "DemandeNew",
-                                              StatutDetail:       "Nouvelle demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              LinkedTypeDemande:  []
-                                          },
-                                          {
-                                              StatusKey:          "DemandeBrouillon",
-                                              StatutDetail:       "Brouillon de demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              ActionRequired:     true,
-                                              LinkedTypeDemande:  []
-                                          }
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
                                     Visible: |-
@@ -4551,11 +4562,11 @@ Screens:
                                   ComponentName: cmpActionButton
                                   Properties:
                                     AccessibleLabel: ="Bouton Refuser la demande"
-                                    Action: =_ActionOnForm.CODICandidatSelect
+                                    Action: =_ActionOnForm.CODICandSelect
                                     ActionState: |
-                                      =If(IsBlank(crdCODICandRetenu_F.Update) , // Rend l’action disponible uniquement lorsque le commentaire requis est renseigné.
-                                          Self.StateValues.Unavailable,
-                                          Self.StateValues.Available
+                                      =If(Not(IsBlank(crdCODICandRetenu_F.Update)), 
+                                          Self.StateValues.Available,
+                                          Self.StateValues.Unavailable
                                       )
                                     BasePaletteColor: =RGBA(141, 229, 250, 1)
                                     EligibleItemsCount: =Blank()
@@ -4563,41 +4574,16 @@ Screens:
                                     Icon: ="CheckmarkCircle"
                                     InteractionEnabled: =true
                                     NextStatus: =_StatusDetailKey.CandidPVTermines
-                                    NextStatusData: |-
-                                      ={
-                                          StatusKey:          "DemandeBrouillon",
-                                          StatutDetail:       "Brouillon de demande",
-                                          StatutGeneral:      "Formulaire de demande",
-                                          ProcessStepKey:     "InitDemande",
-                                          ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                          ActionRequired:     true,
-                                          LinkedTypeDemande:  []
-                                      }
+                                    NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus: {                                         // Statut cible appliqué aux demandes après exécution\n            Detail:   Self.NextStatus,\n            General:  LookUp(_StatutConfigTable,StatutDetail = Self.NextStatus).StatutGeneral\n        }\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {CODICandidatRetenu:  frmNextStep_F.Updates.CODICandidatRetenu},\n            {\n                'Statut General': MyNextStatus.General,\n                'Statut Detail':  MyNextStatus.Detail\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Décision du CODI enregistrée\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\n                        <p>La décision du CODI enregistrée pour la <i>\" & MyTypeDemande & \"</i> via <b>\" & _AppName & \"</b> \" &\n                        \"pour le <b>\" & vcDemande.SPW & \"</b> (emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b>).\"\n                        & \"<br><u>Candidat retenu : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CODICandidatRetenu.DisplayName & \" (\"& vcDemande.CODICandidatRetenu.Email  &\")</i>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(\"La demande n’a pas pu être mise à jour.\",NotificationType.Error,5000)\n    );\n);\n\n\n"
+                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {CODICandidatRetenu:  frmNextStep_F.Updates.CODICandidatRetenu},\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,\n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Décision du CODI enregistrée\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\n                        <p>La décision du CODI enregistrée pour la <i>\" & MyTypeDemande & \"</i> via <b>\" & _AppName & \"</b> \" &\n                        \"pour le <b>\" & vcDemande.SPW & \"</b> (emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b>).\"\n                        & \"<br><u>Candidat retenu : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CODICandidatRetenu.DisplayName & \" (\"& vcDemande.CODICandidatRetenu.Email  &\")</i>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus_V2.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
                                     OnUnavailable: |
                                       =// ## Informe l'utilisateur des informations requises
                                       Notify("Un candidat est obligatoire pour valider une demande" ,NotificationType.Warning ,2000);
                                     SourceStatuses: =[""]
                                     SourceStatusesData: |-
-                                      =Table(
-                                          {
-                                              StatusKey:          "DemandeNew",
-                                              StatutDetail:       "Nouvelle demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              LinkedTypeDemande:  []
-                                          },
-                                          {
-                                              StatusKey:          "DemandeBrouillon",
-                                              StatutDetail:       "Brouillon de demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              ActionRequired:     true,
-                                              LinkedTypeDemande:  []
-                                          }
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
                                     Visible: |-
@@ -4619,9 +4605,9 @@ Screens:
                                     AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.PromRefus
                                     ActionState: |
-                                      =If(!IsBlank(txtValidationRefus_F.Text) , // Rend l’action disponible uniquement lorsqu'il n'y a pas de remarque sur les chamsp obligatoires
-                                          Self.StateValues.Unavailable,
-                                          Self.StateValues.Available
+                                      =If(IsBlank(txtValidationRefus_F.Text) , // Rend l’action disponible uniquement lorsqu'il n'y a pas de remarque sur les chamsp obligatoires
+                                          Self.StateValues.Available,
+                                          Self.StateValues.MissingRequiredFields
                                       )
                                     BasePaletteColor: =RGBA(141, 229, 250, 1)
                                     EligibleItemsCount: =Blank()
@@ -4629,41 +4615,85 @@ Screens:
                                     Icon: ="DismissCircle"
                                     InteractionEnabled: =true
                                     NextStatus: =_StatusDetailKey.PromRefuseeGW
-                                    NextStatusData: |-
-                                      ={
-                                          StatusKey:          "DemandeBrouillon",
-                                          StatutDetail:       "Brouillon de demande",
-                                          StatutGeneral:      "Formulaire de demande",
-                                          ProcessStepKey:     "InitDemande",
-                                          ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                          ActionRequired:     true,
-                                          LinkedTypeDemande:  []
-                                      }
+                                    NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus: {                                         // Statut cible appliqué aux demandes après exécution\n            Detail:   Self.NextStatus,\n            General:  LookUp(_StatutConfigTable,StatutDetail = Self.NextStatus).StatutGeneral\n        }\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {\n                CommentPromGW:  frmNextStep_F.Updates.CommentPromGW\n            },\n            {\n                'Statut General': MyNextStatus.General,\n                'Statut Detail':  MyNextStatus.Detail\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DFAEmailList(vcDemande.SPW)\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Proposition de désignation refusée par GW\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\n                        <p>Dans le cadre de la <i>\" & MyTypeDemande & \"</i>, La proposition de désignation de l'agent  (\"& vcDemande.CODICandidatRetenu.DisplayName &\") a été refusée par le GW via <b>\" & _AppName & \"</b> \" &\n                        \"pour le <b>\" & vcDemande.SPW & \"</b> (emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b>).\"\n                        & \"<br><u>Motif : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CommentPromGW & \"</i>\" \n                        & \"<p> La notification de refus GW a été annexée à la demande\"\n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(\"La demande n’a pas pu être mise à jour.\",NotificationType.Error,5000)\n    );\n);\n\n\n"
-                                    OnUnavailable: |
-                                      =// ## Informe l'utilisateur des informations requises
-                                      Notify(_txtMessage.RequiredFields ,NotificationType.Warning ,2000);
-                                    SourceStatuses: =[_StatutDetail.PromAuGWDG]
-                                    SourceStatusesData: |-
-                                      =Table(
-                                          {
-                                              StatusKey:          "DemandeNew",
-                                              StatutDetail:       "Nouvelle demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              LinkedTypeDemande:  []
+                                    OnAvailable: |+
+                                      =// ## Logique métier de changement de statut
+                                      With(
+                                          // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
+                                          { 
+                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
-                                          {
-                                              StatusKey:          "DemandeBrouillon",
-                                              StatutDetail:       "Brouillon de demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              ActionRequired:     true,
-                                              LinkedTypeDemande:  []
-                                          }
+
+                                          UpdateContext({vcDemande : 
+                                              //# Applique le changement de statut à la demande traitée       
+                                              Patch(AIRH_Demandes,
+                                                  vcDemande,
+                                                  {
+                                                      CommentPromGW:  frmNextStep_F.Updates.CommentPromGW
+                                                  },
+                                                  {
+                                                      StatusKey:          MyNextStatus_V2.StatusKey,  
+                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
+                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                  }
+                                              )
+                                          });
+
+                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                              Concurrent(
+                                                  // # Notifie des changements de statut
+                                                  With(
+                                                      {
+                                                          MyTypeDemande :     vcDemande.'Type de demande'.Value,
+                                                          MySpw :             vcDemande.SPW,
+                                                          MyNumEmploi:        vcDemande.'Numéro d''emploi',
+                                                          MyRecipients :      _DFAEmailList(vcDemande.SPW)
+                                                      },
+                                                      If(IsBlank(MyRecipients),
+                                                          // Aucune liste DFA configurée pour ce SPW ou pour la DAC
+                                                          Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
+                                                          // Envoi standard
+                                                          Office365Outlook.SendEmailV2(
+                                                              // To  : DFA distribution list
+                                                              MyRecipients,    
+                                                              // Subject: notification métier
+                                                              _txtMessage.EmailSubjectPrefix 
+                                                                  &   MyTypeDemande & " : Proposition de désignation refusée par GW" & " (" & MyNumEmploi & ")",
+                                                              // Body: informations détaillées
+                                                              "<p>Bonjour,</p>
+                                                              <p>Dans le cadre de la <i>" & MyTypeDemande & "</i>, La proposition de désignation de l'agent  ("& vcDemande.CODICandidatRetenu.DisplayName &") a été refusée par le GW via <b>" & _AppName & "</b> " &
+                                                              "pour le <b>" & vcDemande.SPW & "</b> (emploi <b>" & vcDemande.'Numéro d''emploi' & "</b>)."
+                                                              & "<br><u>Motif : </u> <br>" 
+                                                              & "<i>" &  vcDemande.CommentPromGW & "</i>" 
+                                                              & "<p> La notification de refus GW a été annexée à la demande"
+                                                              & _txtMessage.EmailFooter 
+                                                          )
+                                                      )
+                                                  ),
+
+                                                  // # Trace chaque changement de statut dans l'historique
+                                                  fxLogStatusHistory(
+                                                      ShowColumns(vcDemande,ID,'Numéro d''emploi'),
+                                                      MyNextStatus_V2.StatusKey,
+                                                      vvUserRole.Key
+                                                  )
+                                              );
+
+                                              ResetForm(frmGeneralInfo_F);
+                                              Navigate(Screen_Main_M);
+
+                                              ,
+                                              Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)
+                                          );
+                                      );
+
+
+                                    OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
+                                    SourceStatuses: =[_StatusDetailKey.PromAuGWDG]
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
                                     Visible: |-
@@ -4685,9 +4715,9 @@ Screens:
                                     AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.PromAppro
                                     ActionState: |
-                                      =If(!IsBlank(txtValidationAppro_F.Text) , // Rend l’action disponible uniquement lorsqu'il n'y a pas de remarque sur les chamsp obligatoires
-                                          Self.StateValues.Unavailable,
-                                          Self.StateValues.Available
+                                      =If(IsBlank(txtValidationAppro_F.Text) , // Rend l’action disponible uniquement lorsqu'il n'y a pas de remarque sur les chamsp obligatoires
+                                          Self.StateValues.Available,
+                                          Self.StateValues.MissingRequiredFields
                                       )
                                     BasePaletteColor: =RGBA(141, 229, 250, 1)
                                     EligibleItemsCount: =Blank()
@@ -4695,41 +4725,85 @@ Screens:
                                     Icon: ="DismissCircle"
                                     InteractionEnabled: =true
                                     NextStatus: =_StatusDetailKey.PromSignes
-                                    NextStatusData: |-
-                                      ={
-                                          StatusKey:          "DemandeBrouillon",
-                                          StatutDetail:       "Brouillon de demande",
-                                          StatutGeneral:      "Formulaire de demande",
-                                          ProcessStepKey:     "InitDemande",
-                                          ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                          ActionRequired:     true,
-                                          LinkedTypeDemande:  []
-                                      }
+                                    NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus: {                                         // Statut cible appliqué aux demandes après exécution\n            Detail:   Self.NextStatus,\n            General:  LookUp(_StatutConfigTable,StatutDetail = Self.NextStatus).StatutGeneral\n        }\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {\n                CommentPromGW:  Blank()\n            },\n            {\n                'Statut General': MyNextStatus.General,\n                'Statut Detail':  MyNextStatus.Detail\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DFAEmailList(vcDemande.SPW)\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Proposition de désignation approuvée par GW\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\n                        <p>Dans le cadre de la <i>\" & MyTypeDemande & \"</i>, la proposition de désignation de l'agent (\"& vcDemande.CODICandidatRetenu.DisplayName &\") a été ✅approuvée par le GW via <b>\" & _AppName & \"</b> \" &\n                        \"pour le <b>\" & vcDemande.SPW & \"</b> (emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b>).\"\n                        & \"<p>\U0001F4CC Action requise : L'arrêté signé par l'autorité et l'accusé de réception à destination de l'agent se trouvent sur l'application. Merci de faire parvenir à l'agent un exemplaire de chaque document et de nous transmettre l'accusé de réception signé.</p>\n                        <p>D'avance merci.</p>\n                        <p>Bonne journée</p>\"\n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(\"La demande n’a pas pu être mise à jour.\",NotificationType.Error,5000)\n    );\n);\n\n\n"
-                                    OnUnavailable: |
-                                      =// ## Informe l'utilisateur des informations requises
-                                      Notify(_txtMessage.RequiredFields ,NotificationType.Warning ,2000);
-                                    SourceStatuses: =[_StatutDetail.PromAuGWDG]
-                                    SourceStatusesData: |-
-                                      =Table(
-                                          {
-                                              StatusKey:          "DemandeNew",
-                                              StatutDetail:       "Nouvelle demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              LinkedTypeDemande:  []
+                                    OnAvailable: |+
+                                      =// ## Logique métier de changement de statut
+                                      With(
+                                          // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
+                                          { 
+                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
-                                          {
-                                              StatusKey:          "DemandeBrouillon",
-                                              StatutDetail:       "Brouillon de demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              ActionRequired:     true,
-                                              LinkedTypeDemande:  []
-                                          }
+
+                                          UpdateContext({vcDemande : 
+                                              //# Applique le changement de statut à la demande traitée       
+                                              Patch(AIRH_Demandes,
+                                                  vcDemande,
+                                                  {
+                                                      CommentPromGW:  Blank()
+                                                  },
+                                                  {
+                                                      StatusKey:          MyNextStatus_V2.StatusKey,
+                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
+                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                  }
+                                              )
+                                          });
+
+                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                              Concurrent(
+                                                  // # Notifie des changements de statut
+                                                  With(
+                                                      {
+                                                          MyTypeDemande :     vcDemande.'Type de demande'.Value,
+                                                          MySpw :             vcDemande.SPW,
+                                                          MyNumEmploi:        vcDemande.'Numéro d''emploi',
+                                                          MyRecipients :      _DFAEmailList(vcDemande.SPW)
+                                                      },
+                                                      If(IsBlank(MyRecipients),
+                                                          // Aucune liste DFA configurée pour ce SPW ou pour la DAC
+                                                          Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),
+                                                          // Envoi standard
+                                                          Office365Outlook.SendEmailV2(
+                                                              // To  : DFA distribution list
+                                                              MyRecipients,    
+                                                              // Subject: notification métier
+                                                              _txtMessage.EmailSubjectPrefix 
+                                                                  &   MyTypeDemande & " : Proposition de désignation approuvée par GW" & " (" & MyNumEmploi & ")",
+                                                              // Body: informations détaillées
+                                                              "<p>Bonjour,</p>
+                                                              <p>Dans le cadre de la <i>" & MyTypeDemande & "</i>, la proposition de désignation de l'agent ("& vcDemande.CODICandidatRetenu.DisplayName &") a été ✅approuvée par le GW via <b>" & _AppName & "</b> " &
+                                                              "pour le <b>" & vcDemande.SPW & "</b> (emploi <b>" & vcDemande.'Numéro d''emploi' & "</b>)."
+                                                              & "<p>📌 Action requise : L'arrêté signé par l'autorité et l'accusé de réception à destination de l'agent se trouvent sur l'application. Merci de faire parvenir à l'agent un exemplaire de chaque document et de nous transmettre l'accusé de réception signé.</p>
+                                                              <p>D'avance merci.</p>
+                                                              <p>Bonne journée</p>"
+                                                              & _txtMessage.EmailFooter 
+                                                          )
+                                                      )
+                                                  ),
+
+                                                  // # Trace chaque changement de statut dans l'historique
+                                                  fxLogStatusHistory(
+                                                      ShowColumns(vcDemande,ID,'Numéro d''emploi'),
+                                                      MyNextStatus_V2.StatusKey,
+                                                      vvUserRole.Key
+                                                  )
+                                              );
+
+                                              ResetForm(frmGeneralInfo_F);
+                                              Navigate(Screen_Main_M);
+
+                                              ,
+                                              Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)
+                                          );
+                                      );
+
+
+                                    OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
+                                    SourceStatuses: =[_StatusDetailKey.PromAuGWDG]
+                                    SourceStatusesData: |-
+                                      =ForAll(Self.SourceStatuses As MySourceStatus,
+                                          LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
                                     Visible: |-
