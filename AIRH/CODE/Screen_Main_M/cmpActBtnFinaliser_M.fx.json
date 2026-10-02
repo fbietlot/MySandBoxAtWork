@@ -58,11 +58,11 @@
 
             UpdateContext({
                 vcCurrentProcess :                  MyProcess,
-                vcCurrentWizardStep :               0,
-                vcCurrentProcessCompleted :         false,
-                vcCurrentWizardStepAfterSelect :    0, // La plus part du temps après la selection d'une demande dans la liste on passe à l'étape 2 (sinon modifier cette valuer)
+                vcWizardStep :               0,
+                vcWizardCompleted :         false,
+                vcWizardStepAfterSelect :    0, // La plus part du temps après la selection d'une demande dans la liste on passe à l'étape 2 (sinon modifier cette valuer)
                 vcApplyFilter :                     MyFilterToApply,
-                vcApplyFilterOnStatus_V2:           Self.SourceStatusesData.StatusKey
+                vcApplyFilterOnStatus_V2:           MyCurrentStatut.StatusKey
             });
         )
       OnUnavailable: =Select(btnGenericActionUnsupported_M)

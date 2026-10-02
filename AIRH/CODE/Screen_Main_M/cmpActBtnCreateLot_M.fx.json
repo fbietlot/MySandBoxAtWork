@@ -50,7 +50,7 @@
             );
 
             Reset(inpNumLot_M);
-            Reset(dteDirReaffFinConsul_M);
+            Reset(steCreateLotDirReaffFinConsult_M);
 
             // Prepare la selection par defaut
             UpdateIf(ccDemandes,
@@ -62,9 +62,9 @@
             UpdateContext({
                 vcShowDirReaffFinConsul :   false,  // Reset step visibility (default hidden until selection or lot creation)
                 vcCurrentProcess :                  MyProcess,
-                vcCurrentWizardStep :               1,
-                vcCurrentProcessCompleted :         false,
-                vcCurrentWizardStepAfterSelect :    0, // La plus part du temps après la selection d'une demande dans la liste on passe à l'étape 2 (sinon modifier cette valuer)
+                vcWizardStep :               1,
+                vcWizardCompleted :         false,
+                vcWizardStepAfterSelect :    0, // La plus part du temps après la selection d'une demande dans la liste on passe à l'étape 2 (sinon modifier cette valuer)
                 vcApplyFilter :                     MyFilterToApply,
                 vcApplyFilterOnStatus_V2:           Self.SourceStatusesData.StatusKey
             });

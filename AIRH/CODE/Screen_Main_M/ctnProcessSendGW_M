@@ -57,7 +57,7 @@
                   BorderColor: =App.Theme.Colors.Darker10
                   BorderStyle: =BorderStyle.Solid
                   BorderThickness: =0
-                  Color: =If(vcCurrentWizardStep= numSendGW_Select_M.Value ,  App.Theme.Colors.Darker10, Color.Silver)
+                  Color: =If(vcWizardStep= numSendGW_Select_M.Value ,  App.Theme.Colors.Darker10, Color.Silver)
                   FontWeight: =FontWeight.Bold
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -74,7 +74,7 @@
                             5,_Emoji._5,
                             6,_Emoji._6
                         )
-                        & If(vcCurrentWizardStep > MyStepNumber , "✅","")  
+                        & If(vcWizardStep > MyStepNumber , "✅","")  
                         & " Sélectionner les demandes"
                     )
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - btnSendGWSelectAll_M.Width
@@ -89,7 +89,7 @@
                   OnSelect: |-
                     =UpdateContext({vcDemandesEvent:"SetSelection"&Text(Rand())});
                     UpdateContext({
-                        vcCurrentWizardStep: numSendGW_Select_M.Value + 1
+                        vcWizardStep: numSendGW_Select_M.Value + 1
                     });
                   PaddingBottom: =5
                   PaddingLeft: =5
@@ -133,7 +133,7 @@
                   BorderColor: =App.Theme.Colors.Darker10
                   BorderStyle: =BorderStyle.Solid
                   BorderThickness: =0
-                  Color: =If(vcCurrentWizardStep= numSendGWDate_M.Value ,  App.Theme.Colors.Darker10, Color.Silver)
+                  Color: =If(vcWizardStep= numSendGWDate_M.Value ,  App.Theme.Colors.Darker10, Color.Silver)
                   FontWeight: =FontWeight.Bold
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -150,7 +150,7 @@
                             5,_Emoji._5,
                             6,_Emoji._6
                         )
-                        & If(vcCurrentWizardStep > MyStepNumber , "✅","")  
+                        & If(vcWizardStep > MyStepNumber , "✅","")  
                         & " Date d'envoi GW"
                     )
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - inpNumLot_M.Width
@@ -163,11 +163,11 @@
                   OnChange: |-
                     =If(!IsBlank( Self.SelectedDate), // Trigger step progression only after the required input is filled
                         UpdateContext({
-                            vcCurrentWizardStep: numSendGWDate_M.Value + 1
+                            vcWizardStep: numSendGWDate_M.Value + 1
                         })
                     )
                   Placeholder: ="Choisir une date"
-                  Visible: =vcCurrentWizardStep >= numSendGWDate_M.Value
+                  Visible: =vcWizardStep >= numSendGWDate_M.Value
                   Width: =150
       - ctnSendGWSave_M:
           Control: GroupContainer@1.5.0
@@ -197,9 +197,9 @@
                 Control: ModernButton@1.0.0
                 Properties:
                   Align: =Align.Left
-                  Appearance: =If(vcCurrentWizardStep = numSendGWSave_M.Value ,    ButtonAppearance.Primary,ButtonAppearance.Outline)
-                  Color: =If(vcCurrentWizardStep= numSendGWSave_M.Value ,  Color.White, Color.Gray)
-                  DisplayMode: =If(vcCurrentWizardStep = numSendGWSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
+                  Appearance: =If(vcWizardStep = numSendGWSave_M.Value ,    ButtonAppearance.Primary,ButtonAppearance.Outline)
+                  Color: =If(vcWizardStep= numSendGWSave_M.Value ,  Color.White, Color.Gray)
+                  DisplayMode: =If(vcWizardStep = numSendGWSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                   FontWeight: =FontWeight.Bold
                   Layout: =ButtonLayout.TextOnly
                   OnSelect: |+
@@ -255,8 +255,8 @@
                         // Marque le processus comme terminé 
                         // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut
                         UpdateContext({
-                            vcCurrentWizardStep:       numSendGWSave_M.Value + 1 ,
-                            vcCurrentProcessCompleted:  true,
+                            vcWizardStep:       numSendGWSave_M.Value + 1 ,
+                            vcWizardCompleted:  true,
                             // Conservation du mécanisme _DynamicOnStatus : 
                             // les demandes restent visibles après traitement,  mais désormais dans leur statut cible
                             vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
@@ -282,7 +282,7 @@
                             5,_Emoji._5,
                             6,_Emoji._6
                         )
-                        & If(vcCurrentWizardStep > MyStepNumber , "✅","")  
+                        & If(vcWizardStep > MyStepNumber , "✅","")  
                         &  " Envoyer la Note"
                     )
                   VerticalAlign: =VerticalAlign.Middle
@@ -313,7 +313,7 @@
                     =Select(btnGridClearSelect_M); // Reset de la selection
                     UpdateContext({
                         vcCurrentProcess:       Blank(),
-                        vcCurrentWizardStep:   Blank(),
+                        vcWizardStep:   Blank(),
                         vcApplyFilter :         Blank()
                     });
                   PaddingBottom: =5
@@ -325,6 +325,6 @@
                   RadiusTopLeft: =4
                   RadiusTopRight: =4
                   Size: =14
-                  Text: =If(vcCurrentWizardStep = 4, "Terminer","Annuler")
+                  Text: =If(vcWizardStep = 4, "Terminer","Annuler")
                   VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight

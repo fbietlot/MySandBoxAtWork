@@ -57,7 +57,7 @@
                   BorderColor: =App.Theme.Colors.Darker10
                   BorderStyle: =BorderStyle.Solid
                   BorderThickness: =0
-                  Color: =If(vcCurrentWizardStep= numSendDACSelect_M.Value ,  App.Theme.Colors.Darker10, Color.Silver)
+                  Color: =If(vcWizardStep= numSendDACSelect_M.Value ,  App.Theme.Colors.Darker10, Color.Silver)
                   FontWeight: =FontWeight.Bold
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
@@ -74,7 +74,7 @@
                             5,_Emoji._5,
                             6,_Emoji._6
                         )
-                        & If(vcCurrentWizardStep > MyStepNumber , "✅","")  
+                        & If(vcWizardStep > MyStepNumber , "✅","")  
                         & " Sélectionner les demandes"
                     )
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight - SendDACSelectAll_M.Width
@@ -82,7 +82,7 @@
                 Control: ModernButton@1.0.0
                 Properties:
                   Align: =Align.Center
-                  DisplayMode: =If(vcCurrentWizardStep = numSendDACSelect_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
+                  DisplayMode: =If(vcWizardStep = numSendDACSelect_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                   FontWeight: =FontWeight.Bold
                   Height: =24
                   Italic: =true
@@ -90,7 +90,7 @@
                   OnSelect: |-
                     =UpdateContext({vcDemandesEvent:"SetSelection"&Text(Rand())});
                     UpdateContext({
-                        vcCurrentWizardStep: numSendDACSelect_M.Value + 1 
+                        vcWizardStep: numSendDACSelect_M.Value + 1 
                     });
                   PaddingBottom: =5
                   PaddingLeft: =5
@@ -132,9 +132,9 @@
                 Control: ModernButton@1.0.0
                 Properties:
                   Align: =Align.Left
-                  Appearance: =If(vcCurrentWizardStep = numSendDACSave_M.Value ,    ButtonAppearance.Primary,ButtonAppearance.Outline)
-                  Color: =If(vcCurrentWizardStep= numSendDACSave_M.Value ,  Color.White, Color.Gray)
-                  DisplayMode: =If(vcCurrentWizardStep = numSendDACSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
+                  Appearance: =If(vcWizardStep = numSendDACSave_M.Value ,    ButtonAppearance.Primary,ButtonAppearance.Outline)
+                  Color: =If(vcWizardStep= numSendDACSave_M.Value ,  Color.White, Color.Gray)
+                  DisplayMode: =If(vcWizardStep = numSendDACSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                   FontWeight: =FontWeight.Bold
                   Layout: =ButtonLayout.TextOnly
                   OnSelect: |-
@@ -217,8 +217,8 @@
                         // Marque le processus comme terminé 
                         // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut
                         UpdateContext({
-                            vcCurrentWizardStep:        numSendDACSave_M.Value + 1 ,
-                            vcCurrentProcessCompleted:  true,
+                            vcWizardStep:        numSendDACSave_M.Value + 1 ,
+                            vcWizardCompleted:  true,
                             // Conservation du mécanisme _DynamicOnStatus : 
                             // les demandes restent visibles après traitement,
                             // mais désormais dans leur statut cible
@@ -244,7 +244,7 @@
                             5,_Emoji._5,
                             6,_Emoji._6
                         )
-                        & If(vcCurrentWizardStep > MyStepNumber , "✅","")  
+                        & If(vcWizardStep > MyStepNumber , "✅","")  
                         &    " Envoyer"
                     )
                   VerticalAlign: =VerticalAlign.Middle
@@ -289,6 +289,6 @@
                   RadiusTopLeft: =4
                   RadiusTopRight: =4
                   Size: =14
-                  Text: =If(vcCurrentWizardStep = numSendDACExit_M.Value, "Terminer","Annuler")
+                  Text: =If(vcWizardStep = numSendDACExit_M.Value, "Terminer","Annuler")
                   VerticalAlign: =VerticalAlign.Middle
                   Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
