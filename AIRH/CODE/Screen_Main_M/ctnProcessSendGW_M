@@ -257,9 +257,11 @@
                         UpdateContext({
                             vcWizardStep:       numSendGWSave_M.Value + 1 ,
                             vcWizardCompleted:  true,
-                            // Conservation du mécanisme _DynamicOnStatus : 
-                            // les demandes restent visibles après traitement,  mais désormais dans leur statut cible
-                            vcApplyFilterOnStatus_V2:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)
+
+                            /* Conservation du mécanisme _DynamicOnStatus : 
+                                les demandes restent visibles après traitement,
+                                mais désormais dans leur statut cible */
+                            vcApplyFilterOnStatus_V3:   Table(MyNextStatus_V2, MyCurrentStatuses_V2)
                         })
                     )
 

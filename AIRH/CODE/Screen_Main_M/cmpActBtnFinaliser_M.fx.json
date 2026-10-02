@@ -37,7 +37,7 @@
         With(
             {
                 MyProcess :         _ActionOnList.Finaliser,
-                MyFilterToApply :   _FilterToApply._DynamicOnStatus_V2,
+                MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
                 MyCurrentStatut :   Self.SourceStatusesData
             },
 
@@ -60,9 +60,11 @@
                 vcCurrentProcess :                  MyProcess,
                 vcWizardStep :               0,
                 vcWizardCompleted :         false,
-                vcWizardStepAfterSelect :    0, // La plus part du temps après la selection d'une demande dans la liste on passe à l'étape 2 (sinon modifier cette valuer)
+                /* Détermine l'étape à atteindre après la sélection d'une demande dans la liste.
+                   À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/
+                vcWizardStepAfterSelect :    0,
                 vcApplyFilter :                     MyFilterToApply,
-                vcApplyFilterOnStatus_V2:           MyCurrentStatut.StatusKey
+                vcApplyFilterOnStatus_V3:           MyCurrentStatut
             });
         )
       OnUnavailable: =Select(btnGenericActionUnsupported_M)

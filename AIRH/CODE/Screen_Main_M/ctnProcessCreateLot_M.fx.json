@@ -309,10 +309,16 @@
                         UpdateContext({
                             vcWizardStep:        5 ,
                             vcWizardCompleted:  true,
-                            // Conservation du mécanisme _DynamicOnStatus : 
-                            // les demandes restent visibles après traitement,
-                            // mais désormais dans leur statut cible
-                            vcApplyFilterOnStatus_V2:      Table({StatusKey :_StatusDetailKey.DirReaffConsult},{StatusKey :_StatusDetailKey.DACDVEnPrevision} , MyCurrentStatuses_V2.StatusKey)
+
+                            /* Conservation du mécanisme _DynamicOnStatus : 
+                                les demandes restent visibles après traitement,
+                                mais désormais dans leur statut cible */
+                            vcApplyFilterOnStatus_V3:   
+                                Table(                
+                                    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DirReaffConsult),
+                                    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DACDVEnPrevision), 
+                                    MyCurrentStatuses_V2
+                                )
                         }) 
                     );
                   PaddingBottom: =5
