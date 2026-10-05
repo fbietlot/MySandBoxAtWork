@@ -3586,8 +3586,8 @@ Screens:
                               PaddingBottom: =0
                               Size: =10
                               Text: |-
-                                =Switch(vcStatutConfig.StatutDetail,
-                                    _StatutDetail.DemandeNew,
+                                =Switch(vcStatutConfig.StatusKey,
+                                    _StatusKey.DemandeNew,
                                         If(IsBlank( crdNumEmploi_F.Update),                           
                                                             "Le champ [" & crdNumEmploi_F.DisplayName &"] est obligatoire" & Char(10) )
                                         &If(IsBlank( crdRaisonDemande_F.Update),                           
@@ -3602,7 +3602,7 @@ Screens:
                                         )
                                     ,
 
-                                    _StatutDetail.DemandeBrouillon,
+                                    _StatusKey.DemandeBrouillon,
                                         If(IsBlank( crdDateDemandeCodi_F.Update),                           
                                                             "Le champ [" & crdDateDemandeCodi_F.DisplayName &"] est obligatoire" & Char(10) ) 
                                         //Specifique Demande de FF
@@ -3631,7 +3631,7 @@ Screens:
                                         )
                                     ,
 
-                                    _StatutDetail.DACRefusee,
+                                    _StatusKey.DACRefusee,
                                         If(IsBlank( crdDateDemandeCodi_F.Update),                           
                                                             "Le champ [" & crdDateDemandeCodi_F.DisplayName &"] est obligatoire" & Char(10) )
 
@@ -3661,14 +3661,14 @@ Screens:
                                         )
                                     ,
 
-                                    _StatutDetail.DirReaffAuditCODI,
+                                    _StatusKey.DirReaffAuditCODI,
                                         With({MyCategorieDocument : _DocumentCategory.ReaffectPV},
                                             If(IsBlank(LookUp(ccLinkedDocuments,CategorieDocument.Value = MyCategorieDocument)),
                                                             "Le document [" & MyCategorieDocument &"] est obligatoire" & Char(10) ) 
                                         )
                                     ,
 
-                                    _StatutDetail.PromAuGWDG,
+                                    _StatusKey.PromAuGWDG,
                                         If(!IsBlank(txtValidationAppro_F.Text),                           
                                                             "----- Pour l'approbabtion -----" & Char(10) & txtValidationAppro_F.Text
                                         )
@@ -3697,8 +3697,8 @@ Screens:
                                 =// Ce contrôle n'est utilisé que pour les statut permetant une appro ou un refus nécessisant chacun des champs obligatoires (mais différents)
                                 // il n'est pas visible mais son contenu est affiché dans le contrôle standard txtValidationMsg_F
                                 // Par contre le statut des boutons Appro ou Refus ce base directement sur ce controle
-                                Switch(vcStatutConfig.StatutDetail,
-                                            _StatutDetail.PromAuGWDG,
+                                Switch(vcStatutConfig.StatusKey,
+                                            _StatusKey.PromAuGWDG,
                                         If(IsBlank( crdCommentPromGW_F.Update),                           
                                                             "Le champ [" & crdCommentPromGW_F.DisplayName &"] est obligatoire" & Char(10) ) 
                                         & With({MyCategorieDocument : _DocumentCategory.ArreteRefusGW},
@@ -3725,8 +3725,8 @@ Screens:
                                 =// Ce contrôle n'est utilisé que pour les statut permetant une appro ou un refus nécessisant chacun des champs obligatoires (mais différents)
                                 // il n'est pas visible mais son contenu est affiché dans le contrôle standard txtValidationMsg_F
                                 // Par contre le statut des boutons Appro ou Refus ce base directement sur ce controle
-                                Switch(vcStatutConfig.StatutDetail,
-                                            _StatutDetail.PromAuGWDG,
+                                Switch(vcStatutConfig.StatusKey,
+                                            _StatusKey.PromAuGWDG,
                                         With({MyCategorieDocument : _DocumentCategory.ArreteDesign},
                                             If(IsBlank(LookUp(ccLinkedDocuments,CategorieDocument.Value = MyCategorieDocument)),
                                                             "Le document [" & MyCategorieDocument &"] est obligatoire" & Char(10) ) 
@@ -3791,7 +3791,7 @@ Screens:
                                       =ResetForm(frmGeneralInfo_F);
 
                                       // Etant donné que pour la création une demande est toujours créée à vide depuis l'écran principale, il faut la supprimer en cas d'annulation de la création
-                                      If(vcStatutConfig.StatusKey = _StatusDetailKey.DemandeNew,
+                                      If(vcStatutConfig.StatusKey = _StatusKey.DemandeNew,
                                           Remove(AIRH_Demandes,vcDemande)
                                       );
 
@@ -3822,7 +3822,7 @@ Screens:
                                     Height: =32
                                     Icon: ="Add"
                                     InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.DemandeBrouillon
+                                    NextStatus: =_StatusKey.DemandeBrouillon
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     OnAvailable: |-
@@ -3830,7 +3830,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
 
                                           UpdateContext({vcDemande : 
@@ -3839,9 +3839,9 @@ Screens:
                                                   vcDemande,
                                                   frmGeneralInfo_F.Updates,
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,   
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,   
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   }
                                               )
                                           });
@@ -3850,7 +3850,7 @@ Screens:
                                               // # Trace chaque changement de statut dans l'historique
                                               fxLogStatusHistory(
                                                   ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                  MyNextStatus_V2.StatusKey,
+                                                  MyNextStatus.StatusKey,
                                                   vvUserRole.Key
                                               );
                                               ResetForm(frmGeneralInfo_F);
@@ -3929,10 +3929,10 @@ Screens:
                                     Icon: ="Save"
                                     InteractionEnabled: =!vcScreenIsReadOnly
                                     NextStatus: |-
-                                      =If(vcDemande.StatusKey in [_StatusDetailKey.DemandeNew,_StatusDetailKey.DemandeBrouillon,_StatusDetailKey.DemandeBrouillonFin,_StatusDetailKey.DACRefusee ],
+                                      =If(vcDemande.StatusKey in [_StatusKey.DemandeNew,_StatusKey.DemandeBrouillon,_StatusKey.DemandeBrouillonFin,_StatusKey.DACRefusee ],
                                           If(IsBlank( txtValidationMsg_F.Text),
-                                              _StatusDetailKey.DemandeBrouillonFin,
-                                              _StatusDetailKey.DemandeBrouillon
+                                              _StatusKey.DemandeBrouillonFin,
+                                              _StatusKey.DemandeBrouillon
                                           ),
                                           vcDemande.StatusKey
                                       )
@@ -3943,7 +3943,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
@@ -3951,9 +3951,9 @@ Screens:
                                                   vcDemande,
                                                   frmGeneralInfo_F.Updates,
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,   
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,   
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   },
                                                   If(Value( vcStatutConfig.Controls.FormNextStep.Mode) = FormMode.Edit,
                                                       frmNextStep_F.Updates
@@ -3965,7 +3965,7 @@ Screens:
                                               // # Trace chaque changement de statut dans l'historique
                                               fxLogStatusHistory(
                                                   ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                  MyNextStatus_V2.StatusKey,
+                                                  MyNextStatus.StatusKey,
                                                   vvUserRole.Key
                                               );
                                               ResetForm(frmGeneralInfo_F);
@@ -4015,10 +4015,10 @@ Screens:
                                     Height: =32
                                     Icon: ="Send"
                                     InteractionEnabled: =!vcScreenIsReadOnly
-                                    NextStatus: =_StatusDetailKey.DemandeEnCours
+                                    NextStatus: =_StatusKey.DemandeEnCours
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,  \n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            },\n            frmGeneralInfo_F.Updates\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    //MyNbDemandes :      Value(CountRows(MyDemandeSPW));\n                    MySpw :             vcDemande.SPW,\n                    MyListeEmploiHtml :  \"<li>\" & vcDemande.'Numéro d''emploi' & \"</li>\",\n                    MyNumEmploi :       vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : distribution list\n                        MyRecipients,\n                        // Subject: notification métier                   \n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Nouvelle(s) demande(s) envoyée(s) (\" & MySpw & \")\",   \n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p> \" \n                                &    \"<p><i>[\" & MyTypeDemande & \"]: </i></p>\n                                <p>La/Les demande(s) suivante(s) ont été été transmise(s) via <b>\" & _AppName & \"</b></p>\"\n                            & \"<p><strong>\" & MySpw &\"</strong></p>\n                                <ul>\"\n                                & MyListeEmploiHtml\n                                &\"</ul>\" \n            \n                        & _txtMessage.EmailFooter \n                    );\n                )\n               \n            ),\n        \n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus_V2.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
+                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {\n                StatusKey:          MyNextStatus.StatusKey,  \n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            },\n            frmGeneralInfo_F.Updates\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    //MyNbDemandes :      Value(CountRows(MyDemandeSPW));\n                    MySpw :             vcDemande.SPW,\n                    MyListeEmploiHtml :  \"<li>\" & vcDemande.'Numéro d''emploi' & \"</li>\",\n                    MyNumEmploi :       vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : distribution list\n                        MyRecipients,\n                        // Subject: notification métier                   \n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Nouvelle(s) demande(s) envoyée(s) (\" & MySpw & \")\",   \n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p> \" \n                                &    \"<p><i>[\" & MyTypeDemande & \"]: </i></p>\n                                <p>La/Les demande(s) suivante(s) ont été été transmise(s) via <b>\" & _AppName & \"</b></p>\"\n                            & \"<p><strong>\" & MySpw &\"</strong></p>\n                                <ul>\"\n                                & MyListeEmploiHtml\n                                &\"</ul>\" \n            \n                        & _txtMessage.EmailFooter \n                    );\n                )\n               \n            ),\n        \n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
                                     SourceStatusesData: |-
@@ -4054,7 +4054,7 @@ Screens:
                                     Height: =32
                                     Icon: ="DismissCircle"
                                     InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.DACRefusee
+                                    NextStatus: =_StatusKey.DACRefusee
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     OnAvailable: |-
@@ -4062,7 +4062,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
 
                                           UpdateContext({vcDemande : 
@@ -4070,9 +4070,9 @@ Screens:
                                               Patch(AIRH_Demandes,
                                                   vcDemande,
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,   
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,   
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   },
                                                   {CommentValidationDAC:  frmNextStep_F.Updates.CommentValidationDAC}
                                               )
@@ -4112,7 +4112,7 @@ Screens:
                                                   // # Trace chaque changement de statut dans l'historique
                                                   fxLogStatusHistory(
                                                       ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                      MyNextStatus_V2.StatusKey,
+                                                      MyNextStatus.StatusKey,
                                                       vvUserRole.Key
                                                   )
                                               );
@@ -4158,7 +4158,7 @@ Screens:
                                     InteractionEnabled: =true
                                     NextStatus: |-
                                       =LookUp(_StatutConfigTable,
-                                          StatusKey in [  _StatusDetailKey.DACValidee_WithAppel,_StatusDetailKey.DACValidee_WithLot] 
+                                          StatusKey in [  _StatusKey.DACValidee_WithAppel,_StatusKey.DACValidee_WithLot] 
                                           && vcDemande.'Type de demande'.Value in ThisRecord.LinkedTypeDemande
                                           ).StatusKey
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
@@ -4168,7 +4168,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
 
                                           UpdateContext({vcDemande : 
@@ -4176,9 +4176,9 @@ Screens:
                                               Patch(AIRH_Demandes,
                                                   vcDemande,
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,   
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,   
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   },
                                                   {CommentValidationDAC:  frmNextStep_F.Updates.CommentValidationDAC}
                                               )
@@ -4219,7 +4219,7 @@ Screens:
                                                   // # Trace chaque changement de statut dans l'historique
                                                   fxLogStatusHistory(
                                                       ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                      MyNextStatus_V2.StatusKey,
+                                                      MyNextStatus.StatusKey,
                                                       vvUserRole.Key
                                                   )
                                               );
@@ -4265,7 +4265,7 @@ Screens:
                                     Height: =32
                                     Icon: ="CheckmarkCircle"
                                     InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.DirReaffCODI
+                                    NextStatus: =_StatusKey.DirReaffCODI
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     OnAvailable: |-
@@ -4273,7 +4273,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
 
                                           UpdateContext({vcDemande : 
@@ -4281,9 +4281,9 @@ Screens:
                                               Patch(AIRH_Demandes,
                                                   vcDemande,
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,   
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,   
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   }
                                               )
                                           });
@@ -4310,7 +4310,7 @@ Screens:
                                                               // Body: informations détaillées
                                                               "<p>Bonjour,</p> " 
                                                                       & "<p><i>[" & MyTypeDemande & "]: </i></p>
-                                                                      <p> Votre demande a un nouveau statut : " & MyNextStatus_V2.StatutDetail & " (" & MyNextStatus_V2.StatutGeneral & ")" &
+                                                                      <p> Votre demande a un nouveau statut : " & MyNextStatus.StatutDetail & " (" & MyNextStatus.StatutGeneral & ")" &
                                                                       "<p><b>" & MySpw & "</b> (emploi <b>" & MyNumEmploi & "</b>)."
                                                                       & _txtMessage.EmailFooter 
                                                           );
@@ -4320,7 +4320,7 @@ Screens:
                                                   // # Trace chaque changement de statut dans l'historique
                                                   fxLogStatusHistory(
                                                       ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                      MyNextStatus_V2.StatusKey,
+                                                      MyNextStatus.StatusKey,
                                                       vvUserRole.Key
                                                   )
                                               );
@@ -4332,7 +4332,7 @@ Screens:
                                           );
                                       );
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
-                                    SourceStatuses: =[_StatusDetailKey.DirReaffAuditCODI]
+                                    SourceStatuses: =[_StatusKey.DirReaffAuditCODI]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
@@ -4366,7 +4366,7 @@ Screens:
                                     Height: =32
                                     Icon: ="DismissCircle"
                                     InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.DirReaffPasReaff
+                                    NextStatus: =_StatusKey.DirReaffPasReaff
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     OnAvailable: |-
@@ -4374,7 +4374,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
 
                                           UpdateContext({vcDemande : 
@@ -4382,9 +4382,9 @@ Screens:
                                               Patch(AIRH_Demandes,
                                                   vcDemande,
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,   
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,   
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   }
                                               )
                                           });
@@ -4411,7 +4411,7 @@ Screens:
                                                               // Body: informations détaillées
                                                               "<p>Bonjour,</p> " 
                                                                       & "<p><i>[" & MyTypeDemande & "]: </i></p>
-                                                                      <p> Votre demande a un nouveau statut : " & MyNextStatus_V2.StatutDetail & " (" & MyNextStatus_V2.StatutGeneral & ")" &
+                                                                      <p> Votre demande a un nouveau statut : " & MyNextStatus.StatutDetail & " (" & MyNextStatus.StatutGeneral & ")" &
                                                                       "<p><b>" & MySpw & "</b> (emploi <b>" & MyNumEmploi & "</b>)."
                                                                       & _txtMessage.EmailFooter 
                                                           );
@@ -4421,7 +4421,7 @@ Screens:
                                                   // # Trace chaque changement de statut dans l'historique
                                                   fxLogStatusHistory(
                                                       ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                      MyNextStatus_V2.StatusKey,
+                                                      MyNextStatus.StatusKey,
                                                       vvUserRole.Key
                                                   )
                                               );
@@ -4433,7 +4433,7 @@ Screens:
                                           );
                                       );
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
-                                    SourceStatuses: =[_StatusDetailKey.DirReaffAuditCODI]
+                                    SourceStatuses: =[_StatusKey.DirReaffAuditCODI]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
@@ -4467,7 +4467,7 @@ Screens:
                                     Height: =32
                                     Icon: ="DismissCircle"
                                     InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.COSTRARefusee
+                                    NextStatus: =_StatusKey.COSTRARefusee
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
                                     OnAvailable: |-
@@ -4475,7 +4475,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
 
                                           },
 
@@ -4485,9 +4485,9 @@ Screens:
                                                   vcDemande,
                                                   {CommentValidationCOSTRA:  frmNextStep_F.Updates.CommentValidationCOSTRA},
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   }
                                               )
                                           });
@@ -4525,7 +4525,7 @@ Screens:
                                                   // # Trace chaque changement de statut dans l'historique
                                                   fxLogStatusHistory(
                                                       ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                      MyNextStatus_V2.StatusKey,
+                                                      MyNextStatus.StatusKey,
                                                       vvUserRole.Key
                                                   )
                                               );
@@ -4539,7 +4539,7 @@ Screens:
                                     OnUnavailable: |
                                       =// ## Informe l'utilisateur des informations requises
                                       Notify("Un commentaire est obligatoire pour refuser une demande" ,NotificationType.Warning ,2000);
-                                    SourceStatuses: =[_StatusDetailKey.NGWAuGW]
+                                    SourceStatuses: =[_StatusKey.NGWAuGW]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
@@ -4573,10 +4573,10 @@ Screens:
                                     Height: =32
                                     Icon: ="CheckmarkCircle"
                                     InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.CandidPVTermines
+                                    NextStatus: =_StatusKey.CandidPVTermines
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {CODICandidatRetenu:  frmNextStep_F.Updates.CODICandidatRetenu},\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,\n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Décision du CODI enregistrée\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\n                        <p>La décision du CODI enregistrée pour la <i>\" & MyTypeDemande & \"</i> via <b>\" & _AppName & \"</b> \" &\n                        \"pour le <b>\" & vcDemande.SPW & \"</b> (emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b>).\"\n                        & \"<br><u>Candidat retenu : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CODICandidatRetenu.DisplayName & \" (\"& vcDemande.CODICandidatRetenu.Email  &\")</i>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus_V2.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
+                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {CODICandidatRetenu:  frmNextStep_F.Updates.CODICandidatRetenu},\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Décision du CODI enregistrée\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\n                        <p>La décision du CODI enregistrée pour la <i>\" & MyTypeDemande & \"</i> via <b>\" & _AppName & \"</b> \" &\n                        \"pour le <b>\" & vcDemande.SPW & \"</b> (emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b>).\"\n                        & \"<br><u>Candidat retenu : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CODICandidatRetenu.DisplayName & \" (\"& vcDemande.CODICandidatRetenu.Email  &\")</i>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
                                     OnUnavailable: |
                                       =// ## Informe l'utilisateur des informations requises
                                       Notify("Un candidat est obligatoire pour valider une demande" ,NotificationType.Warning ,2000);
@@ -4614,7 +4614,7 @@ Screens:
                                     Height: =32
                                     Icon: ="DismissCircle"
                                     InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.PromRefuseeGW
+                                    NextStatus: =_StatusKey.PromRefuseeGW
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
                                     OnAvailable: |+
@@ -4622,7 +4622,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
 
                                           UpdateContext({vcDemande : 
@@ -4633,9 +4633,9 @@ Screens:
                                                       CommentPromGW:  frmNextStep_F.Updates.CommentPromGW
                                                   },
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,  
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,  
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   }
                                               )
                                           });
@@ -4675,7 +4675,7 @@ Screens:
                                                   // # Trace chaque changement de statut dans l'historique
                                                   fxLogStatusHistory(
                                                       ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                      MyNextStatus_V2.StatusKey,
+                                                      MyNextStatus.StatusKey,
                                                       vvUserRole.Key
                                                   )
                                               );
@@ -4690,7 +4690,7 @@ Screens:
 
 
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    SourceStatuses: =[_StatusDetailKey.PromAuGWDG]
+                                    SourceStatuses: =[_StatusKey.PromAuGWDG]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
@@ -4724,7 +4724,7 @@ Screens:
                                     Height: =32
                                     Icon: ="DismissCircle"
                                     InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.PromSignes
+                                    NextStatus: =_StatusKey.PromSignes
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
                                     OnAvailable: |+
@@ -4732,7 +4732,7 @@ Screens:
                                       With(
                                           // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique
                                           { 
-                                              MyNextStatus_V2 :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
+                                              MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution
                                           },
 
                                           UpdateContext({vcDemande : 
@@ -4743,9 +4743,9 @@ Screens:
                                                       CommentPromGW:  Blank()
                                                   },
                                                   {
-                                                      StatusKey:          MyNextStatus_V2.StatusKey,
-                                                      'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                      'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                      StatusKey:          MyNextStatus.StatusKey,
+                                                      'Statut Detail':    MyNextStatus.StatutDetail,
+                                                      'Statut General':   MyNextStatus.StatutGeneral
                                                   }
                                               )
                                           });
@@ -4785,7 +4785,7 @@ Screens:
                                                   // # Trace chaque changement de statut dans l'historique
                                                   fxLogStatusHistory(
                                                       ShowColumns(vcDemande,ID,'Numéro d''emploi'),
-                                                      MyNextStatus_V2.StatusKey,
+                                                      MyNextStatus.StatusKey,
                                                       vvUserRole.Key
                                                   )
                                               );
@@ -4800,7 +4800,7 @@ Screens:
 
 
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    SourceStatuses: =[_StatusDetailKey.PromAuGWDG]
+                                    SourceStatuses: =[_StatusKey.PromAuGWDG]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)

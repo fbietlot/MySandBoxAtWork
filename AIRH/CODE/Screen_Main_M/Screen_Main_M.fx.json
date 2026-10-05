@@ -143,7 +143,7 @@ Screens:
             Height: =Parent.Height
             LayoutAlignItems: =LayoutAlignItems.Stretch
             LayoutDirection: =LayoutDirection.Vertical
-            LayoutGap: =16
+            LayoutGap: =10
             PaddingBottom: =16
             PaddingLeft: =16
             PaddingRight: =16
@@ -164,19 +164,68 @@ Screens:
                       Control: Header@0.0.44
                       Properties:
                         Title: "=_AppName & \" (version \" & _AppVersion &   \" - Rôle : \" & vvUserRole.Text & \" - SPW : \" & Coalesce(vvUserSPW,\"N/A\") & \")\" "
+            - ctnTypeDemande_M:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  Fill: =RGBA(174, 208, 221, 1)
+                  FillPortions: =0
+                  Height: =30
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Vertical
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                Children:
+                  - tabTypeDemande_M:
+                      Control: ModernTabList@1.0.2
+                      Properties:
+                        Appearance: =TabListAppearance.SubtleCircular
+                        Default: |-
+                          ={Type : _TypeDemande.All}
+                        Height: =30
+                        ItemDisplayText: =ThisItem.Icon &  ThisItem.Type
+                        Items: |-
+                          =Table( 
+                              {Type: _TypeDemande.All}, 
+                              If(IsBlank(vcCurrentProcess),  
+                                  _TypeDemandeConfigTable,
+                                  Filter(_TypeDemandeConfigTable, vcCurrentProcess in Actions)
+                              )
+                          )
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        TabSize: =TabSize.Small
+                        Width: =dlstDemandes_M.Width
+                        X: =40
+                        Y: =40
             - ctnActions_M:
                 Control: GroupContainer@1.5.0
                 Variant: AutoLayout
                 Properties:
                   Fill: =RGBA(200, 200, 200, 1)
                   FillPortions: =0
-                  Height: "=80\r\n+ Max(\r\n    ((vcCurrentProcess = _ActionOnList.NewDemande)) * ctnSubActionButtons.Height,\r\n    (vcCurrentProcess = _ActionOnList.Filtrer) * ctnFilters.Height,\r\n    (vcCurrentProcess = _ActionOnList.Archive) * ctnArchive_M.Height\r\n) \r\n+ vvDebug * ctnTechnicalButtons_M.Height  "
+                  Height: "=80\r\n+ lblSelectTypeForAction_M.Height * lblSelectTypeForAction_M.Visible\r\n+ Max(\r\n    ((vcCurrentProcess = _ActionOnList.NewDemande)) * ctnSubActionButtons.Height,\r\n    (vcCurrentProcess = _ActionOnList.Filtrer) * ctnFilters.Height,\r\n    (vcCurrentProcess = _ActionOnList.Archive) * ctnArchive_M.Height\r\n) \r\n+ vvDebug * ctnTechnicalButtons_M.Height  "
                   LayoutAlignItems: =LayoutAlignItems.Center
                   LayoutDirection: =LayoutDirection.Vertical
                   LayoutMaxWidth: =Parent.Width
                   LayoutMinHeight: =16
                   LayoutMinWidth: =16
                 Children:
+                  - lblSelectTypeForAction_M:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Height: =24
+                        Italic: =true
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =2
+                        PaddingLeft: =20
+                        PaddingRight: =2
+                        PaddingTop: =2
+                        Size: =13
+                        Text: ="Veuilliez sélectionner un type de demande pour effectuer lance un processus"
+                        Visible: =tabTypeDemande_M.Selected.Type = _TypeDemande.All
+                        Width: =Parent.Width
                   - ctnActionButtons:
                       Control: GroupContainer@1.5.0
                       Variant: AutoLayout
@@ -229,16 +278,7 @@ Screens:
                                     Icon: ="Add"
                                     InteractionEnabled: =true
                                     NextStatus: =Blank()
-                                    NextStatusData: |-
-                                      ={
-                                          StatusKey:          "DemandeBrouillon",
-                                          StatutDetail:       "Brouillon de demande",
-                                          StatutGeneral:      "Formulaire de demande",
-                                          ProcessStepKey:     "InitDemande",
-                                          ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                          ActionRequired:     true,
-                                          LinkedTypeDemande:  []
-                                      }
+                                    NextStatusData: =
                                     OnAlreadyRunning: |-
                                       =UpdateContext({ vcCurrentProcess : Blank()})
                                     OnAvailable: |-
@@ -285,7 +325,7 @@ Screens:
                                     EligibleItemsCount: =CountRows( Filter( ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="Edit"
-                                    InteractionEnabled: =true
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank()
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnGenericExitProcess_M)
@@ -294,8 +334,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         _ActionOnList.Finaliser,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -309,7 +349,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      { RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+                                                      { RecordSelected: StatusKey in MyCurrentStatus.StatusKey}
                                           );
                                           Select(btnGridClearSelect_M);
 
@@ -321,11 +361,11 @@ Screens:
                                                  À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/
                                               vcWizardStepAfterSelect :    0,
                                               vcApplyFilter :                     MyFilterToApply,
-                                              vcApplyFilterOnStatus_V3:           MyCurrentStatut
+                                              vcApplyFilterOnStatus_V3:           MyCurrentStatus
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[ _StatusDetailKey.DemandeBrouillon , _StatusDetailKey.DACRefusee]
+                                    SourceStatuses: =[ _StatusKey.DemandeBrouillon , _StatusKey.DACRefusee]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
@@ -334,7 +374,13 @@ Screens:
                                     Visible: |-
                                       =With({MyAction :Self.Action},
                                           // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
-                                          MyAction in vvUserRole.Actions
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =160
                                     X: =496
@@ -369,8 +415,8 @@ Screens:
                                     EligibleItemsCount: =CountRows( Filter( ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey ))
                                     Height: =32
                                     Icon: ="Send"
-                                    InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.DemandeEnCours
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
+                                    NextStatus: =_StatusKey.DemandeEnCours
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnSendDACExit_M); //Arrêter Le processus
                                     OnAvailable: |-
@@ -378,8 +424,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -393,7 +439,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      { RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+                                                      { RecordSelected: StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -405,11 +451,11 @@ Screens:
                                                  À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/
                                               vcWizardStepAfterSelect :    numSendDACSelect_M.Value + 1, 
                                               vcApplyFilter :                     MyFilterToApply,
-                                              vcApplyFilterOnStatus_V3:           MyCurrentStatut
+                                              vcApplyFilterOnStatus_V3:           MyCurrentStatus
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.DemandeBrouillonFin]
+                                    SourceStatuses: =[_StatusKey.DemandeBrouillonFin]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
@@ -418,7 +464,13 @@ Screens:
                                     Visible: |-
                                       =With({MyAction :Self.Action},
                                           // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
-                                          MyAction in vvUserRole.Actions
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =120
                                     X: =496
@@ -453,7 +505,7 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="Checkmark"
-                                    InteractionEnabled: =true
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: |-
@@ -467,8 +519,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -482,7 +534,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      { RecordSelected:   StatusKey in MyCurrentStatut.StatusKey}
+                                                      { RecordSelected:   StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -498,16 +550,22 @@ Screens:
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.DemandeEnCours]
+                                    SourceStatuses: =[_StatusKey.DemandeEnCours]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
+                                    Visible: |+
                                       =With({MyAction :Self.Action},
                                           // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
-                                          MyAction in vvUserRole.Actions
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =110
                                     X: =496
@@ -542,7 +600,7 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="AppsList"
-                                    InteractionEnabled: =true
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnLotCancel_M); //Annler Le processus
@@ -551,8 +609,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -569,7 +627,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      { RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+                                                      { RecordSelected: StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -586,16 +644,22 @@ Screens:
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.DACValidee_WithLot]
+                                    SourceStatuses: =[_StatusKey.DACValidee_WithLot]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
+                                    Visible: |+
                                       =With({MyAction :Self.Action},
                                           // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
-                                          MyAction in vvUserRole.Actions
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =110
                                     X: =496
@@ -630,7 +694,7 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="ThumbLikeDislike"
-                                    InteractionEnabled: =true
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnDirCandidExit_M); //Arrêter Le processus
@@ -639,8 +703,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -656,7 +720,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      {RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+                                                      {RecordSelected: StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -672,20 +736,22 @@ Screens:
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[ _StatusDetailKey.DirReaffFinConsult]
+                                    SourceStatuses: =[ _StatusKey.DirReaffFinConsult]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
-                                      =With({MyAction : Self.Action},
-                                          // [Pattern cmpActionButton]
-                                          // Contrôle la visibilité de l'action indépendamment de son état métier.
-                                          // Une action peut être visible mais indisponible.
-                                          // La visibilité détermine uniquement si l'utilisateur est autorisé à voir cette action dans l'interface.
-                                          // MyAction in vcStatutConfig.Actions &&
-                                          MyAction in vvUserRole.Actions
+                                    Visible: |+
+                                      =With({MyAction :Self.Action},
+                                          // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =140
                                     X: =496
@@ -720,7 +786,7 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="ThumbLikeDislike"
-                                    InteractionEnabled: =true
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: |-
@@ -734,8 +800,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -749,7 +815,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      { RecordSelected:   StatusKey in MyCurrentStatut.StatusKey}
+                                                      { RecordSelected:   StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -765,16 +831,22 @@ Screens:
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.DirReaffAuditCODI]
+                                    SourceStatuses: =[_StatusKey.DirReaffAuditCODI]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
+                                    Visible: |+
                                       =With({MyAction :Self.Action},
                                           // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
-                                          MyAction in vvUserRole.Actions
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =140
                                     X: =496
@@ -809,8 +881,8 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="AppsList"
-                                    InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.NGWCOSTRADemande
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
+                                    NextStatus: =_StatusKey.NGWCOSTRADemande
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnSendGWCancel_M); //Annler Le processus
                                     OnAvailable: |-
@@ -818,8 +890,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -835,7 +907,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      {RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+                                                      {RecordSelected: StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -847,20 +919,26 @@ Screens:
                                                  À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/
                                               vcWizardStepAfterSelect :    numSendGW_Select_M.Value + 1 ,
                                               vcApplyFilter :                     MyFilterToApply,
-                                              vcApplyFilterOnStatus_V3:           MyCurrentStatut
+                                              vcApplyFilterOnStatus_V3:           MyCurrentStatus
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.DACDVEnPrevision,_StatusDetailKey.DirReaffPasCandid,_StatusDetailKey.DirReaffPasReaff]
+                                    SourceStatuses: =[_StatusKey.DACDVEnPrevision,_StatusKey.DirReaffPasCandid,_StatusKey.DirReaffPasReaff]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
+                                    Visible: |+
                                       =With({MyAction :Self.Action},
                                           // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
-                                          MyAction in vvUserRole.Actions
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =110
                                     X: =496
@@ -895,26 +973,28 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="ThumbLikeDislike"
-                                    InteractionEnabled: =true
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnCOSTRADecisionExit_M); //Arrêter Le processus
-                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,\n        MyCurrentStatut :   Self.SourceStatusesData\n    },\n\n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,\n        Distinct(\n            Filter(_TypeDemandeConfigTable,Self.Action in Actions),\n            Type\n        )\n    );\n\n    Reset(radCOSTRAdecisionChoice_M);\n\n    // Prepare la selection par defaut\n    UpdateIf(ccDemandes,\n                true,\n                {RecordSelected: StatusKey in MyCurrentStatut.StatusKey}\n    );\n    Select(btnGridClearSelect_M);\n    \n    UpdateContext({\n        vcCurrentProcess :                 MyProcess,\n        vcWizardStep :              1,\n        vcWizardCompleted :        false,\n        /* Détermine l'étape à atteindre après la sélection d'une demande dans la liste.\n           À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/\n        vcWizardStepAfterSelect :   numCOSTRADecisionSelect_M.Value + 1 , \n        vcApplyFilter :                    MyFilterToApply,\n        vcApplyFilterOnStatus_V3:          Self.SourceStatusesData\n    });\n)"
+                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus,\n        MyCurrentStatus :   Self.SourceStatusesData\n    },\n\n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,\n        Distinct(\n            Filter(_TypeDemandeConfigTable,Self.Action in Actions),\n            Type\n        )\n    );\n\n    Reset(radCOSTRAdecisionChoice_M);\n\n    // Prepare la selection par defaut\n    UpdateIf(ccDemandes,\n                true,\n                {RecordSelected: StatusKey in MyCurrentStatus.StatusKey}\n    );\n    Select(btnGridClearSelect_M);\n    \n    UpdateContext({\n        vcCurrentProcess :                 MyProcess,\n        vcWizardStep :              1,\n        vcWizardCompleted :        false,\n        /* Détermine l'étape à atteindre après la sélection d'une demande dans la liste.\n           À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/\n        vcWizardStepAfterSelect :   numCOSTRADecisionSelect_M.Value + 1 , \n        vcApplyFilter :                    MyFilterToApply,\n        vcApplyFilterOnStatus_V3:          Self.SourceStatusesData\n    });\n)"
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.NGWCOSTRADemande]
+                                    SourceStatuses: =[_StatusKey.NGWCOSTRADemande]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
-                                      =With({MyAction : Self.Action},
-                                          // [Pattern cmpActionButton]
-                                          // Contrôle la visibilité de l'action indépendamment de son état métier.
-                                          // Une action peut être visible mais indisponible.
-                                          // La visibilité détermine uniquement si l'utilisateur est autorisé à voir cette action dans l'interface.
-                                          // MyAction in vcStatutConfig.Actions &&
-                                          MyAction in vvUserRole.Actions
+                                    Visible: |+
+                                      =With({MyAction :Self.Action},
+                                          // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =110
                                     X: =496
@@ -949,7 +1029,7 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="ThumbLikeDislike"
-                                    InteractionEnabled: =true
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnSendGWCancel_M); //Arrêter Le processus
@@ -958,8 +1038,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -975,7 +1055,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      {RecordSelected: StatusKey in MyCurrentStatut.StatusKey}
+                                                      {RecordSelected: StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -991,20 +1071,22 @@ Screens:
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.NGWAuGW]
+                                    SourceStatuses: =[_StatusKey.NGWAuGW]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
-                                      =With({MyAction : Self.Action},
-                                          // [Pattern cmpActionButton]
-                                          // Contrôle la visibilité de l'action indépendamment de son état métier.
-                                          // Une action peut être visible mais indisponible.
-                                          // La visibilité détermine uniquement si l'utilisateur est autorisé à voir cette action dans l'interface.
-                                          // MyAction in vcStatutConfig.Actions &&
-                                          MyAction in vvUserRole.Actions
+                                    Visible: |+
+                                      =With({MyAction :Self.Action},
+                                          // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =110
                                     X: =496
@@ -1039,8 +1121,8 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="AppsList"
-                                    InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.CandidAppelEnCours
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
+                                    NextStatus: =_StatusKey.CandidAppelEnCours
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnAppelCanidExit_M); //Arrêter Le processus
                                     OnAvailable: |-
@@ -1048,8 +1130,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -1066,7 +1148,7 @@ Screens:
                                           //Preparation de la selection par defaut de toutes les demandes dans le statut à traiter
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatut.StatusKey}
+                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatus.StatusKey}
                                           );
                                           Select(btnGridClearSelect_M);
 
@@ -1075,7 +1157,7 @@ Screens:
                                               AddColumns( 
                                                   Sort( 
                                                       Distinct(
-                                                          Filter(ccDemandes,ThisRecord.StatusKey in MyCurrentStatut.StatusKey) ,
+                                                          Filter(ccDemandes,ThisRecord.StatusKey in MyCurrentStatus.StatusKey) ,
                                                           Rang
                                                       ),
                                                   Value
@@ -1092,24 +1174,26 @@ Screens:
                                                  À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/
                                               vcWizardStepAfterSelect:    2,
                                               vcApplyFilter:              MyFilterToApply,
-                                              vcApplyFilterOnStatus_V3:   MyCurrentStatut
+                                              vcApplyFilterOnStatus_V3:   MyCurrentStatus
                                           })
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.NGWGWDVValidee,_StatusDetailKey.DACValidee_WithAppel]
+                                    SourceStatuses: =[_StatusKey.NGWGWDVValidee,_StatusKey.DACValidee_WithAppel]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
-                                      =With({MyAction : Self.Action},
-                                          // [Pattern cmpActionButton]
-                                          // Contrôle la visibilité de l'action indépendamment de son état métier.
-                                          // Une action peut être visible mais indisponible.
-                                          // La visibilité détermine uniquement si l'utilisateur est autorisé à voir cette action dans l'interface.
-                                          // MyAction in vcStatutConfig.Actions &&
-                                          MyAction in vvUserRole.Actions
+                                    Visible: |+
+                                      =With({MyAction :Self.Action},
+                                          // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =130
                                     X: =496
@@ -1144,22 +1228,28 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="Send"
-                                    InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.CandidDFA
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
+                                    NextStatus: =_StatusKey.CandidDFA
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnSendDFAExit); //Arrêter Le processus
-                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,\n        MyCurrentStatut :   Self.SourceStatusesData\n    },\n\n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,\n        Distinct(\n            Filter(_TypeDemandeConfigTable,Self.Action in Actions),\n            Type\n        )\n    );\n    \n    // Prepare la selection par defaut\n    UpdateIf(ccDemandes,\n                true,\n                {RecordSelected: ThisRecord.StatusKey in MyCurrentStatut.StatusKey}\n    );\n    Select(btnGridClearSelect_M);\n\n    UpdateContext({\n        vcCurrentProcess:           MyProcess,\n        vcWizardStep:               1,\n        vcWizardCompleted:          false,\n        /* Détermine l'étape à atteindre après la sélection d'une demande dans la liste.\n           À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/\n        vcWizardStepAfterSelect :   numCandSendDFASelect_M.Value + 1,\n        \n        vcApplyFilter:              MyFilterToApply,\n        vcApplyFilterOnStatus_V3:   MyCurrentStatut\n    })\n)\n\n"
+                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus,\n        MyCurrentStatus :   Self.SourceStatusesData\n    },\n\n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,\n        Distinct(\n            Filter(_TypeDemandeConfigTable,Self.Action in Actions),\n            Type\n        )\n    );\n    \n    // Prepare la selection par defaut\n    UpdateIf(ccDemandes,\n                true,\n                {RecordSelected: ThisRecord.StatusKey in MyCurrentStatus.StatusKey}\n    );\n    Select(btnGridClearSelect_M);\n\n    UpdateContext({\n        vcCurrentProcess:           MyProcess,\n        vcWizardStep:               1,\n        vcWizardCompleted:          false,\n        /* Détermine l'étape à atteindre après la sélection d'une demande dans la liste.\n           À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/\n        vcWizardStepAfterSelect :   numCandSendDFASelect_M.Value + 1,\n        \n        vcApplyFilter:              MyFilterToApply,\n        vcApplyFilterOnStatus_V3:   MyCurrentStatus\n    })\n)\n\n"
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.CandidAnalyse]
+                                    SourceStatuses: =[_StatusKey.CandidAnalyse]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
+                                    Visible: |+
                                       =With({MyAction :Self.Action},
                                           // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
-                                          MyAction in vvUserRole.Actions
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =130
                                     X: =496
@@ -1194,8 +1284,8 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="Calendar"
-                                    InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.CandidPVEnCours
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
+                                    NextStatus: =_StatusKey.CandidPVEnCours
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnCandAudExit_M); //Arrêter Le processus
                                     OnAvailable: |-
@@ -1203,8 +1293,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -1220,7 +1310,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatut.StatusKey}
+                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -1237,20 +1327,22 @@ Screens:
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.CandidDFA]
+                                    SourceStatuses: =[_StatusKey.CandidDFA]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
-                                      =With({MyAction : Self.Action},
-                                          // [Pattern cmpActionButton]
-                                          // Contrôle la visibilité de l'action indépendamment de son état métier.
-                                          // Une action peut être visible mais indisponible.
-                                          // La visibilité détermine uniquement si l'utilisateur est autorisé à voir cette action dans l'interface.
-                                          // MyAction in vcStatutConfig.Actions &&
-                                          MyAction in vvUserRole.Actions
+                                    Visible: |+
+                                      =With({MyAction :Self.Action},
+                                          // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =130
                                     X: =496
@@ -1285,8 +1377,8 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="ThumbLikeDislike"
-                                    InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.CandidPVTermines
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
+                                    NextStatus: =_StatusKey.CandidPVTermines
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnCODIDecisionExit_M); //Arrêter Le processus
                                     OnAvailable: |-
@@ -1294,8 +1386,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -1309,7 +1401,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatut.StatusKey}
+                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -1326,20 +1418,22 @@ Screens:
                                           });
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.CandidPVEnCours]
+                                    SourceStatuses: =[_StatusKey.CandidPVEnCours]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
-                                      =With({MyAction : Self.Action},
-                                          // [Pattern cmpActionButton]
-                                          // Contrôle la visibilité de l'action indépendamment de son état métier.
-                                          // Une action peut être visible mais indisponible.
-                                          // La visibilité détermine uniquement si l'utilisateur est autorisé à voir cette action dans l'interface.
-                                          // MyAction in vcStatutConfig.Actions &&
-                                          MyAction in vvUserRole.Actions
+                                    Visible: |+
+                                      =With({MyAction :Self.Action},
+                                          // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =120
                                     X: =496
@@ -1374,8 +1468,8 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="DrawShape"
-                                    InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.PromRedaction
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
+                                    NextStatus: =_StatusKey.PromRedaction
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnPromRedacExit_M); //Arrêter Le processus
                                     OnAvailable: |-
@@ -1383,8 +1477,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -1398,7 +1492,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatut.StatusKey}
+                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -1408,7 +1502,7 @@ Screens:
                                                   Sort( 
                                                       Distinct(
                                                           Filter( ccDemandes,
-                                                               StatusKey in MyCurrentStatut.StatusKey
+                                                               StatusKey in MyCurrentStatus.StatusKey
                                                           ) ,
                                                           Rang
                                                       ),
@@ -1426,24 +1520,26 @@ Screens:
                                                  À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/
                                               vcWizardStepAfterSelect :   Blank(),
                                               vcApplyFilter :             MyFilterToApply,
-                                              vcApplyFilterOnStatus_V3:   MyCurrentStatut
+                                              vcApplyFilterOnStatus_V3:   MyCurrentStatus
                                           })
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.CandidPVTermines]
+                                    SourceStatuses: =[_StatusKey.CandidPVTermines]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
-                                      =With({MyAction : Self.Action},
-                                          // [Pattern cmpActionButton]
-                                          // Contrôle la visibilité de l'action indépendamment de son état métier.
-                                          // Une action peut être visible mais indisponible.
-                                          // La visibilité détermine uniquement si l'utilisateur est autorisé à voir cette action dans l'interface.
-                                          // MyAction in vcStatutConfig.Actions &&
-                                          MyAction in vvUserRole.Actions
+                                    Visible: |+
+                                      =With({MyAction :Self.Action},
+                                          // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =130
                                     X: =496
@@ -1478,24 +1574,28 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="Send"
-                                    InteractionEnabled: =true
-                                    NextStatus: =_StatusDetailKey.PromAuGWDG
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
+                                    NextStatus: =_StatusKey.PromAuGWDG
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnAppelCanidExit_M); //Arrêter Le processus
-                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,\n        MyCurrentStatut :   Self.SourceStatusesData\n    },\n\n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,\n        Distinct(\n            Filter(_TypeDemandeConfigTable,Self.Action in Actions),\n            Type\n        )\n    );\n\n    //Reinitialisation des contrôle de choix ou d'entrée du conteneur lié au Processus\n    Reset(dtePromEnvoiDate_M);\n\n    //Preparation de la selection par defaut de toutes les demandes dans le statut à traiter\n    UpdateIf(ccDemandes,\n                true,\n                {RecordSelected: ThisRecord.StatusKey in MyCurrentStatut.StatusKey}\n    );\n    Select(btnGridClearSelect_M);\n\n    //Preparation du filtre pour les Rangs utilisé dans la gallerie de filtre du container de Process\n    ClearCollect(ccRangFilter,\n        AddColumns( \n            Sort( \n                Distinct(\n                    Filter( ccDemandes,StatusKey in MyCurrentStatut.StatusKey) ,\n                    Rang\n                ),\n            Value\n        ),\n        Selected,false)\n    );\n\n    // Initialisation des variables définissant le contexte d'exécution du processus\n    UpdateContext({\n        vcCurrentProcess:           MyProcess,\n        vcWizardStep :              1,\n        vcWizardCompleted:          false,\n        /* Détermine l'étape à atteindre après la sélection d'une demande dans la liste.\n           À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/\n        vcWizardStepAfterSelect :   numPromEnvoiChoice_M.Value + 1 , \n        \n        vcApplyFilter :             MyFilterToApply,\n        vcApplyFilterOnStatus_V3:   MyCurrentStatut\n    })\n)"
+                                    OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus,\n        MyCurrentStatus :   Self.SourceStatusesData\n    },\n\n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,\n        Distinct(\n            Filter(_TypeDemandeConfigTable,Self.Action in Actions),\n            Type\n        )\n    );\n\n    //Reinitialisation des contrôle de choix ou d'entrée du conteneur lié au Processus\n    Reset(dtePromEnvoiDate_M);\n\n    //Preparation de la selection par defaut de toutes les demandes dans le statut à traiter\n    UpdateIf(ccDemandes,\n                true,\n                {RecordSelected: ThisRecord.StatusKey in MyCurrentStatus.StatusKey}\n    );\n    Select(btnGridClearSelect_M);\n\n    //Preparation du filtre pour les Rangs utilisé dans la gallerie de filtre du container de Process\n    ClearCollect(ccRangFilter,\n        AddColumns( \n            Sort( \n                Distinct(\n                    Filter( ccDemandes,StatusKey in MyCurrentStatus.StatusKey) ,\n                    Rang\n                ),\n            Value\n        ),\n        Selected,false)\n    );\n\n    // Initialisation des variables définissant le contexte d'exécution du processus\n    UpdateContext({\n        vcCurrentProcess:           MyProcess,\n        vcWizardStep :              1,\n        vcWizardCompleted:          false,\n        /* Détermine l'étape à atteindre après la sélection d'une demande dans la liste.\n           À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/\n        vcWizardStepAfterSelect :   numPromEnvoiChoice_M.Value + 1 , \n        \n        vcApplyFilter :             MyFilterToApply,\n        vcApplyFilterOnStatus_V3:   MyCurrentStatus\n    })\n)"
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.PromRedaction]
+                                    SourceStatuses: =[_StatusKey.PromRedaction]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
-                                      =With({MyAction : Self.Action},
-                                          // Contrôle la visibilité de l'action indépendamment de son état métier (Une action peut être visible mais indisponible.)
-                                          // La visibilité détermine uniquement si l'utilisateur est autorisé à voir cette action dans l'interface.
-                                          // MyAction in vcStatutConfig.Actions &&
-                                          MyAction in vvUserRole.Actions
+                                    Visible: |+
+                                      =With({MyAction :Self.Action},
+                                          // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =130
                                     X: =496
@@ -1530,7 +1630,7 @@ Screens:
                                     EligibleItemsCount: =CountRows(Filter(ccDemandes,StatusKey in Self.SourceStatusesData.StatusKey))
                                     Height: =32
                                     Icon: ="Checkmark"
-                                    InteractionEnabled: =true
+                                    InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
                                     OnAlreadyRunning: =Select(btnGenericExitProcess_M)
@@ -1539,8 +1639,8 @@ Screens:
                                       With(
                                           {
                                               MyProcess :         Self.Action,
-                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus_V3,
-                                              MyCurrentStatut :   Self.SourceStatusesData
+                                              MyFilterToApply :   _FilterToApply._DynamicOnStatus,
+                                              MyCurrentStatus :   Self.SourceStatusesData
                                           },
 
                                           //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable
@@ -1554,7 +1654,7 @@ Screens:
                                           // Prepare la selection par defaut
                                           UpdateIf(ccDemandes,
                                                       true,
-                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatut.StatusKey}
+                                                      {RecordSelected: ThisRecord.StatusKey in MyCurrentStatus.StatusKey}
                                           ); 
                                           Select(btnGridClearSelect_M);
 
@@ -1564,20 +1664,26 @@ Screens:
                                               vcWizardStep :              1,
                                               vcWizardCompleted:          false,
                                               vcApplyFilter :             MyFilterToApply,
-                                              vcApplyFilterOnStatus_V3:   MyCurrentStatut
+                                              vcApplyFilterOnStatus_V3:   MyCurrentStatus
                                           })
                                       )
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
-                                    SourceStatuses: =[_StatusDetailKey.PromAuGWDG]
+                                    SourceStatuses: =[_StatusKey.PromAuGWDG]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
                                           LookUp(_StatutConfigTable,StatusKey=MySourceStatus.Value)
                                       )
                                     Text: =Self.Action
-                                    Visible: |-
+                                    Visible: |+
                                       =With({MyAction :Self.Action},
                                           // Affiche le bouton uniquement pour les utilisateurs autorisés à exécuter cette action (contrôle basé sur le rôle)
-                                          MyAction in vvUserRole.Actions
+                                          And(
+                                              MyAction in vvUserRole.Actions,
+                                              Or(
+                                                  tabTypeDemande_M.Selected.Type = _TypeDemande.All,
+                                                  MyAction in tabTypeDemande_M.Selected.Actions
+                                              )
+                                          )
                                       )
                                     Width: =130
                                     X: =496
@@ -1618,7 +1724,7 @@ Screens:
                                     FontWeight: =""
                                     OnSelect: |-
                                       =With({
-                                          MyStatutDetail : LookUp(_StatutConfigTable, StatusKey = _StatusDetailKey.DemandeNew)
+                                          MyStatusDetail : LookUp(_StatutConfigTable, StatusKey = _StatusKey.DemandeNew)
                                           },
                                           // La demande est déjà créée afin d'obtenir le numero ID de la demande et permettre l'ajout de document dès la création
                                           // Si la création est annulée dans l'écran de formulaire, on s'assure alors d'effacer la demande
@@ -1626,8 +1732,8 @@ Screens:
                                               Patch(AIRH_Demandes,
                                                   Defaults(AIRH_Demandes),
                                                   {
-                                                      'Statut General': MyStatutDetail.StatutGeneral,
-                                                      'Statut Detail':  MyStatutDetail.StatutDetail
+                                                      'Statut General': MyStatusDetail.StatutGeneral,
+                                                      'Statut Detail':  MyStatusDetail.StatutDetail
                                                   }
                                               )
                                           });
@@ -1639,7 +1745,7 @@ Screens:
                                                   vcTypeDemandeConfig :   LookUp(_TypeDemandeConfigTable, Type =  ThisItem.Value),
                                                   vcDemande:              vcDemande, 
                                                   vcPosteInformation:     Blank(),
-                                                  vcStatutConfig :        MyStatutDetail
+                                                  vcStatutConfig :        MyStatusDetail
                                               }
                                           )
                                       )
@@ -1821,7 +1927,7 @@ Screens:
                                           {
                                               MyProcess :         Self.Action,
                                               MyFilterToApply :   Blank(),
-                                              MyCurrentStatut :   Blank()
+                                              MyCurrentStatus :   Blank()
                                           },
                                           UpdateIf(ccDemandes,
                                                       true,
@@ -2128,10 +2234,10 @@ Screens:
                                               AddColumns(
                                                   Filter(
                                                       _StatutConfigTable,
-                                                          StatusKey <> _StatusDetailKey.DemandeNew
+                                                          StatusKey <> _StatusKey.DemandeNew
                                                   ),
                                                   Id,
-                                                      StatutGeneral_SortOrder & StatutDetail_SortOrder,
+                                                      StatutGeneral_SortOrder & StatusDetail_SortOrder,
                                                   Value,
                                                       StatutDetail
                                               ),
@@ -2356,7 +2462,7 @@ Screens:
                               FontWeight: =""
                               Height: =20
                               Icon: ="Library"
-                              OnSelect: "=/*######### GRID DATA REFRESH CONTROLLER #######################################\nBouton technique centralisant le rechargement complet du FluentDetailList.\n\n    Son OnSelect est appelé depuis différents points de l'application afin de\n    garantir un comportement de rafraîchissement cohérent et d'éviter la duplication\n    de code :\n    • OnVisible de l'écran\n    • Après des opérations de masse (btnBulk...)\n    • À la fin de certains traitements métier (btnProcessDo...)\n    • En mode debug (ex. changement de rôle ou validation d'un scénario)\n\n    Lors d'un rafraîchissement :\n        • l'état de tri de la gille est initialisé \n        • Les données sont chargées depuis SharePoint dans une collection locale\n        • Les règles d'accès liées au rôle et au périmètre SPW sont appliquées\n        • Les métadonnées d'affichage sont pré-calculées\n        • La configuration des colonnes est adaptée au rôle courant\n        • Toute sélection active est réinitialisée\n\n    Le FluentDetailList travaille ensuite exclusivement sur les collections locales.\n    Les filtres, recherches et tris interactifs sont effectués dans la propriété\n    Items du contrôle sans réinterroger SharePoint, ce qui améliore les performances\n    et garantit un comportement cohérent de la grille.\n\n    Le contrôle FluentDetailList est un composant du Power Platform Creator Kit\n    https://learn.microsoft.com/en-us/power-platform/guidance/creator-kit/detailslist\n    Il est utilisé pour l'affichage d'une liste des \"Demandes\"\n###############################################################################*/\n\n/******** Initialisation de l'état de la grille ********************************\n    Les variables vcDemandes... sont nécessaires à la configuration du contrôle FluentDetailList\n    Définit l'état par défaut du FluentDetailList avant le chargement des données.\n    Le tri initial est appliqué sur la date de dernière modification afin de\n        présenter en priorité les demandes les plus récemment mises à jour.\n*******************************************************************************/\nUpdateContext({\n    vcDemandesSortField  : _DemandesFieldName.Modified,\n    vcDemandesSortOrder : false\n});\n\n/******** Précharge les demandes accessibles à l'utilisateur. *****************\n    La collection ccDemandes constitue la source de données principale du FluentDetailList.\n    Les règles de visibilité liées aux rôles et aux autorisations sont appliquées\n        dès le chargement afin de ne conserver que les demandes accessibles à l'utilisateur.\n    Les métadonnées utilisées par l'affichage sont également pré-calculées afin\n        d'éviter des traitements répétitifs lors des interactions avec la grille.\n    Remarques : \n        Les recherches, filtres et tris utilisateur sont ensuite effectués sur cette collection\n                locale via la propriété Items du FluentDetailList sans nouvel appel à SharePoint.\n*******************************************************************************/\nClearCollect(ccDemandes,\n    /*---- Logique de Construction de la source de données de la grille : ---------\n        • ShowColumns : sélection des colonnes utiles\n        • Filter : filtrage selon les droits de l'utilisateur\n        • AddColumns : préchargement des métadonnées de type et de statut\n        • AddColumns : enrichissement des données pour l'affichage\n        • DropColumns : nettoyage des colonnes temporaires\n    -------------------------------------------------------------------------*/\n    DropColumns(                    // Nettoie les métadonnées intermédiaires après enrichissement des demandes\n        AddColumns(                 // Construit les attributs d'affichage et d'interaction utilisés par la grille\n            AddColumns(             // Précharge temporairement les métadonnées liées au type et au statut pour éviter des recherches répétées lors de l'enrichissement\n                If(vcCurrentProcess <> _ActionOnList.Archive,\n                    Filter(             // Affiche uniquement les demandes actives accessibles à l'utilisateur selon son rôle et son périmètre SPW\n                        ShowColumns(    // Limite les données chargées aux colonnes utilisées par la grille\n                            AIRH_Demandes,\n                            // Les colonnes à afficher\n                            ID,Archive,'Type de demande',Lot,'Numéro d''emploi',\n                            'Code ES',SPW,'Département (Abréviation)',Département,Direction,Service,Rang,\n                            'Date de demande du CODI',\n                            'Statut General','Statut Detail',StatusKey,\n                            DateDirReaffFinConsult,\n                            Modifié,'Modifié par'\n                        ),\n                        // Les filtres à appliquer\n                        And( \n                            Archive = false,    // Seules les demandes actives sont affichées -  Exclut les demandes archivées\n                            Or(                 // Les demandes en brouillon sont masquées pour la DAC\n                                vvUserRole.Key <> _Acteur.DAC.Key, \n                                StatusKey <> _StatusDetailKey.DemandeBrouillon\n                            ), \n                            Or(                 // Le périmètre de consultation est limité au SPW de l'utilisateur, sauf pour la DAC\n                                vvUserRole.Key = _Acteur.DAC.Key,\n                                SPW = vvUserSPW\n                            )\n                        )\n                    ),\n                    Filter(             // Affiche uniquement les demandes actives accessibles à l'utilisateur selon son rôle et son périmètre SPW\n                        ShowColumns(    // Limite les données chargées aux colonnes utilisées par la grille\n                            AIRH_Demandes,\n                            // Les colonnes à afficher\n                            ID,Archive,'Type de demande',Lot,'Numéro d''emploi',\n                            'Code ES',SPW,'Département (Abréviation)',Département,Direction,Service,Rang,\n                            'Date de demande du CODI',\n                            'Statut General','Statut Detail',StatusKey,\n                            DateDirReaffFinConsult,\n                            Modifié,'Modifié par'\n                        ),\n                        // Les filtres à appliquer\n                        And( \n                            Archive = true,\n                            StartsWith( NumEmploi,txtArchiveEmploi_M.Text), \n                            Or(                 // Les demandes en brouillon sont masquées pour la DAC\n                                vvUserRole.Key <> _Acteur.DAC.Key, \n                                StatusKey <> _StatusDetailKey.DemandeBrouillon\n                            ), \n                            Or(                 // Le périmètre de consultation est limité au SPW de l'utilisateur, sauf pour la DAC\n                                vvUserRole.Key = _Acteur.DAC.Key,\n                                SPW = vvUserSPW\n                            )\n                        )\n                    ) \n                    \n                )As MyDemandesRawData,\n                // Les métadonnées à précharger\n                MyTypeInfo ,    // Précharge la configuration du type de demande\n                    LookUp(_TypeDemandeConfigTable, Type = MyDemandesRawData.TypeDemande.Value),\n                MyStatusInfo ,  // Précharge la configuration du statut de la demande\n                    LookUp(_StatutConfigTable,StatusKey = MyDemandesRawData.StatusKey)\n            ) As MyDemandes,\n            // Les attributs à ajouter\n            // • Attributs d'affichage du type de demande\n            TypeDemandeValue ,      // Libellé du type de demande\n                MyDemandes.TypeDemande.Value,\n            TypeDemandeIcon,        // Type de demande enrichi avec son indicateur visuel de couleur\n                MyDemandes.MyTypeInfo.Icon & MyDemandes.TypeDemande.Value,\n            TypeDemandeColor,       // Couleur associée au type de demande\n                MyDemandes.MyTypeInfo.ColorHex,\n            // • Attributs liés aux actions attendues\n            ActionOwner,            // Acteur responsable de la prochaine action avec indicateur d'action immédiate si requis\n                Switch(\n                    MyDemandes.MyStatusInfo.ActionOwner.Key, \n                    _Acteur.DAC.Key, If(vvUserRole.Key = _Acteur.DAC.Key && MyDemandes.MyStatusInfo.ActionRequired, \"⚡\") & _Acteur.DAC.Text, \n                    _Acteur.DFA.Key, If(vvUserRole.Key = _Acteur.DFA.Key && MyDemandes.MyStatusInfo.ActionRequired, \"⚡\") &_Acteur.DFA.Text, \n                    \"\"\n                ),\n            ActionOwnerColor,       // Couleur associée à l'acteur responsable\n                Switch(\n                    MyDemandes.MyStatusInfo.ActionOwner.Key, \n                    _Acteur.DAC.Key, _Acteur.DAC.ColorHex, \n                    _Acteur.DFA.Key, _Acteur.DFA.ColorHex, \n                    \"rgb(0, 0, 0)\"\n                ),\n            // • Attributs d'information\n            ModifiedBy,             // Nom du dernier utilisateur ayant modifié la demande\n                MyDemandes.Editor.DisplayName,\n            // • Attributs de suivi du processus\n            StatutSortOrder,        // Ordre de tri représentant la progression de la demande dans le processus\n                MyDemandes.MyStatusInfo.StatutGeneral_SortOrder & MyDemandes.MyStatusInfo.StatutDetail_SortOrder,\n            StatutProgressBar,      // Représentation visuelle de l'avancement de la demande dans le processus (▰▰▰▰▰▰▰✔)\n                MyDemandes.MyStatusInfo.StatutProgressBar,\n            StatutEcheance ,        // Échéance ou jalon métier associé à certains statuts\n                Switch(MyDemandes.Statut_x0020_Detail,\n                    _StatutDetail.DirReaffConsult,MyDemandes.DateDirReaffFinConsult,\n                    Blank()\n                ),\n            // • Attributs techniques FluentDetailList\n            RecordSelected  ,       // Permet de forcer la sélection d'une ligne dans le FluentDetailList (non sélectionnée par défaut)\n                false,\n            expand,                 // Permet d'afficher une demande sur plusieurs lignes dans le FluentDetailList (vue compacte par défaut)\n                false\n        ),\n        // Les colonnes à oublier\n        MyStatusInfo,MyTypeInfo,Editor,Archive,TypeDemande\n    )\n);\n\n\n/******** Construit la configuration du FluentDetailList adaptée au rôle courant. ************\n    Le catalogue de référence contient l'ensemble des colonnes disponibles ainsi que leurs propriétés d'affichage (v*sibilité, tri, largeur, comporteme*t...).\n    Seules les colonnes autorisées pour le rôle de l'utilisateur sont conservées.\n    Cette configuration sert ensuite de source unique pou* le rendu de la grille.\n********************************************************************************************/\nClearCollect(ccDetailsListColumnsConfig,\n    DropColumns(\n        Filter(\n            _tblDemandesFieldCatalog, \n            vvUserRole.Key in View\n        ),\n        View\n    )\n);\n\n/******** Reset selection ***************************************************************\n    Force la suppression de toute sélection résiduelle après le rechargement de la grille \n**************************************************************************************/\nSelect(btnGridClearSelect_M); "
+                              OnSelect: "=/*######### GRID DATA REFRESH CONTROLLER #######################################\nBouton technique centralisant le rechargement complet du FluentDetailList.\n\n    Son OnSelect est appelé depuis différents points de l'application afin de\n    garantir un comportement de rafraîchissement cohérent et d'éviter la duplication\n    de code :\n    • OnVisible de l'écran\n    • Après des opérations de masse (btnBulk...)\n    • À la fin de certains traitements métier (btnProcessDo...)\n    • En mode debug (ex. changement de rôle ou validation d'un scénario)\n\n    Lors d'un rafraîchissement :\n        • l'état de tri de la gille est initialisé \n        • Les données sont chargées depuis SharePoint dans une collection locale\n        • Les règles d'accès liées au rôle et au périmètre SPW sont appliquées\n        • Les métadonnées d'affichage sont pré-calculées\n        • La configuration des colonnes est adaptée au rôle courant\n        • Toute sélection active est réinitialisée\n\n    Le FluentDetailList travaille ensuite exclusivement sur les collections locales.\n    Les filtres, recherches et tris interactifs sont effectués dans la propriété\n    Items du contrôle sans réinterroger SharePoint, ce qui améliore les performances\n    et garantit un comportement cohérent de la grille.\n\n    Le contrôle FluentDetailList est un composant du Power Platform Creator Kit\n    https://learn.microsoft.com/en-us/power-platform/guidance/creator-kit/detailslist\n    Il est utilisé pour l'affichage d'une liste des \"Demandes\"\n###############################################################################*/\n\n/******** Initialisation de l'état de la grille ********************************\n    Les variables vcDemandes... sont nécessaires à la configuration du contrôle FluentDetailList\n    Définit l'état par défaut du FluentDetailList avant le chargement des données.\n    Le tri initial est appliqué sur la date de dernière modification afin de\n        présenter en priorité les demandes les plus récemment mises à jour.\n*******************************************************************************/\nUpdateContext({\n    vcDemandesSortField  : _DemandesFieldName.Modified,\n    vcDemandesSortOrder : false\n});\n\n/******** Précharge les demandes accessibles à l'utilisateur. *****************\n    La collection ccDemandes constitue la source de données principale du FluentDetailList.\n    Les règles de visibilité liées aux rôles et aux autorisations sont appliquées\n        dès le chargement afin de ne conserver que les demandes accessibles à l'utilisateur.\n    Les métadonnées utilisées par l'affichage sont également pré-calculées afin\n        d'éviter des traitements répétitifs lors des interactions avec la grille.\n    Remarques : \n        Les recherches, filtres et tris utilisateur sont ensuite effectués sur cette collection\n                locale via la propriété Items du FluentDetailList sans nouvel appel à SharePoint.\n*******************************************************************************/\nClearCollect(ccDemandes,\n    /*---- Logique de Construction de la source de données de la grille : ---------\n        • ShowColumns : sélection des colonnes utiles\n        • Filter : filtrage selon les droits de l'utilisateur\n        • AddColumns : préchargement des métadonnées de type et de statut\n        • AddColumns : enrichissement des données pour l'affichage\n        • DropColumns : nettoyage des colonnes temporaires\n    -------------------------------------------------------------------------*/\n    DropColumns(                    // Nettoie les métadonnées intermédiaires après enrichissement des demandes\n        AddColumns(                 // Construit les attributs d'affichage et d'interaction utilisés par la grille\n            AddColumns(             // Précharge temporairement les métadonnées liées au type et au statut pour éviter des recherches répétées lors de l'enrichissement\n                If(vcCurrentProcess <> _ActionOnList.Archive,\n                    Filter(             // Affiche uniquement les demandes actives accessibles à l'utilisateur selon son rôle et son périmètre SPW\n                        ShowColumns(    // Limite les données chargées aux colonnes utilisées par la grille\n                            AIRH_Demandes,\n                            // Les colonnes à afficher\n                            ID,Archive,'Type de demande',Lot,'Numéro d''emploi',\n                            'Code ES',SPW,'Département (Abréviation)',Département,Direction,Service,Rang,\n                            'Date de demande du CODI',\n                            'Statut General','Statut Detail',StatusKey,\n                            DateDirReaffFinConsult,\n                            Modifié,'Modifié par'\n                        ),\n                        // Les filtres à appliquer\n                        And( \n                            Archive = false,    // Seules les demandes actives sont affichées -  Exclut les demandes archivées\n                            Or(                 // Les demandes en brouillon sont masquées pour la DAC\n                                vvUserRole.Key <> _Acteur.DAC.Key, \n                                StatusKey <> _StatusKey.DemandeBrouillon\n                            ), \n                            Or(                 // Le périmètre de consultation est limité au SPW de l'utilisateur, sauf pour la DAC\n                                vvUserRole.Key = _Acteur.DAC.Key,\n                                SPW = vvUserSPW\n                            )\n                        )\n                    ),\n                    Filter(             // Affiche uniquement les demandes actives accessibles à l'utilisateur selon son rôle et son périmètre SPW\n                        ShowColumns(    // Limite les données chargées aux colonnes utilisées par la grille\n                            AIRH_Demandes,\n                            // Les colonnes à afficher\n                            ID,Archive,'Type de demande',Lot,'Numéro d''emploi',\n                            'Code ES',SPW,'Département (Abréviation)',Département,Direction,Service,Rang,\n                            'Date de demande du CODI',\n                            'Statut General','Statut Detail',StatusKey,\n                            DateDirReaffFinConsult,\n                            Modifié,'Modifié par'\n                        ),\n                        // Les filtres à appliquer\n                        And( \n                            Archive = true,\n                            StartsWith( NumEmploi,txtArchiveEmploi_M.Text), \n                            Or(                 // Les demandes en brouillon sont masquées pour la DAC\n                                vvUserRole.Key <> _Acteur.DAC.Key, \n                                StatusKey <> _StatusKey.DemandeBrouillon\n                            ), \n                            Or(                 // Le périmètre de consultation est limité au SPW de l'utilisateur, sauf pour la DAC\n                                vvUserRole.Key = _Acteur.DAC.Key,\n                                SPW = vvUserSPW\n                            )\n                        )\n                    ) \n                    \n                )As MyDemandesRawData,\n                // Les métadonnées à précharger\n                MyTypeInfo ,    // Précharge la configuration du type de demande\n                    LookUp(_TypeDemandeConfigTable, Type = MyDemandesRawData.TypeDemande.Value),\n                MyStatusInfo ,  // Précharge la configuration du statut de la demande\n                    LookUp(_StatutConfigTable,StatusKey = MyDemandesRawData.StatusKey)\n            ) As MyDemandes,\n            // Les attributs à ajouter\n            // • Attributs d'affichage du type de demande\n            TypeDemandeValue ,      // Libellé du type de demande\n                MyDemandes.TypeDemande.Value,\n            TypeDemandeIcon,        // Type de demande enrichi avec son indicateur visuel de couleur\n                MyDemandes.MyTypeInfo.Icon & MyDemandes.TypeDemande.Value,\n            TypeDemandeColor,       // Couleur associée au type de demande\n                MyDemandes.MyTypeInfo.ColorHex,\n            // • Attributs liés aux actions attendues\n            ActionOwner,            // Acteur responsable de la prochaine action avec indicateur d'action immédiate si requis\n                Switch(\n                    MyDemandes.MyStatusInfo.ActionOwner.Key, \n                    _Acteur.DAC.Key, If(vvUserRole.Key = _Acteur.DAC.Key && MyDemandes.MyStatusInfo.ActionRequired, \"⚡\") & _Acteur.DAC.Text, \n                    _Acteur.DFA.Key, If(vvUserRole.Key = _Acteur.DFA.Key && MyDemandes.MyStatusInfo.ActionRequired, \"⚡\") &_Acteur.DFA.Text, \n                    \"\"\n                ),\n            ActionOwnerColor,       // Couleur associée à l'acteur responsable\n                Switch(\n                    MyDemandes.MyStatusInfo.ActionOwner.Key, \n                    _Acteur.DAC.Key, _Acteur.DAC.ColorHex, \n                    _Acteur.DFA.Key, _Acteur.DFA.ColorHex, \n                    \"rgb(0, 0, 0)\"\n                ),\n            // • Attributs d'information\n            ModifiedBy,             // Nom du dernier utilisateur ayant modifié la demande\n                MyDemandes.Editor.DisplayName,\n            // • Attributs de suivi du processus\n            StatutSortOrder,        // Ordre de tri représentant la progression de la demande dans le processus\n                MyDemandes.MyStatusInfo.StatutGeneral_SortOrder & MyDemandes.MyStatusInfo.StatusDetail_SortOrder,\n            StatutProgressBar,      // Représentation visuelle de l'avancement de la demande dans le processus (▰▰▰▰▰▰▰✔)\n                MyDemandes.MyStatusInfo.StatutProgressBar,\n            StatutEcheance ,        // Échéance ou jalon métier associé à certains statuts\n                Switch(MyDemandes.StatusKey,\n                    _StatusKey.DirReaffConsult,MyDemandes.DateDirReaffFinConsult,\n                    Blank()\n                ),\n            // • Attributs techniques FluentDetailList\n            RecordSelected  ,       // Permet de forcer la sélection d'une ligne dans le FluentDetailList (non sélectionnée par défaut)\n                false,\n            expand,                 // Permet d'afficher une demande sur plusieurs lignes dans le FluentDetailList (vue compacte par défaut)\n                false\n        ),\n        // Les colonnes à oublier\n        MyStatusInfo,MyTypeInfo,Editor,Archive,TypeDemande\n    )\n);\n\n\n/******** Construit la configuration du FluentDetailList adaptée au rôle courant. ************\n    Le catalogue de référence contient l'ensemble des colonnes disponibles ainsi que leurs propriétés d'affichage (v*sibilité, tri, largeur, comporteme*t...).\n    Seules les colonnes autorisées pour le rôle de l'utilisateur sont conservées.\n    Cette configuration sert ensuite de source unique pou* le rendu de la grille.\n********************************************************************************************/\nClearCollect(ccDetailsListColumnsConfig,\n    DropColumns(\n        Filter(\n            _tblDemandesFieldCatalog, \n            vvUserRole.Key in View\n        ),\n        View\n    )\n);\n\n/******** Reset selection ***************************************************************\n    Force la suppression de toute sélection résiduelle après le rechargement de la grille \n**************************************************************************************/\nSelect(btnGridClearSelect_M); "
                               PaddingBottom: =5
                               PaddingLeft: =12
                               PaddingRight: =12
@@ -3178,7 +3284,7 @@ Screens:
                                           DisplayMode: =If(vcWizardStep = numPromEnvoiSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                                           FontWeight: =FontWeight.Bold
                                           Layout: =ButtonLayout.TextOnly
-                                          OnSelect: "=With({\n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus_V2:        cmpActBtnPromEnvoi_M.NextStatusData,\n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MyCurrentStatuses_V2 :  cmpActBtnPromEnvoi_M.SourceStatusesData\n    },\n\n    // # Applique à toutes les demandes sélectionnées\n    //      - le changement de statut  \n    //      - les champs d'entrée complémentaires\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,\n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            },\n            {\n                DatePromSend: dtePromEnvoiDate_M.SelectedDate\n            }\n        )        \n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        ForAll(\n            // Envoi des notifications regroupées par SPW afin d'éviter l'envoi d'un email par demande\n            Distinct(dlstDemandes_M.SelectedItems,SPW) As MyCurrentSpw,\n            With({MyDemandeSPW : \n                    Filter(dlstDemandes_M.SelectedItems,SPW = MyCurrentSpw.Value)\n                },\n                With(\n                    {\n                        MyTypeDemande :     First(MyDemandeSPW).TypeDemandeValue,\n                        MyNbDemandes :      Value(CountRows(MyDemandeSPW)),\n                        MySpw :             MyCurrentSpw.Value,\n                        MyListeEmploiHtml : Concat( MyDemandeSPW,\"<li>\" & NumEmploi & \"</li>\" & Char(10) ),\n                        MyRecipients :      _DFAEmailList(MyCurrentSpw.Value)\n                    },\n                    If(IsBlank(MyRecipients),\n                        // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                        Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                        // Envoi standard\n                        Office365Outlook.SendEmailV2(\n                            // To  : distribution list\n                            MyRecipients,\n                            // Subject: notification métier                   \n                            _txtMessage.EmailSubjectPrefix \n                                &   \"Les arrêtés sont partis à la signature de l'Autorité\" ,     \n                            // Body: informations détaillées\n                            \"<p>Bonjour,</p> \" \n                                & \"<i>[\" & MyTypeDemande & \"]: </i> Les arrêtés sont partis à la signature de l'Autorité pour les emplois suivants:\"\n                                & \"<p><strong>\" & MySpw &\"</strong></p>\n                                    <ul>\"\n                                    & MyListeEmploiHtml\n                                    &\"</ul>\"                                      \n                            & _txtMessage.EmailFooter \n                        );\n                    )\n                )\n            )\n        );\n\n        ,       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus_V2.StatusKey,\n            vvUserRole.Key\n        );\n    );\n\n    // Confirmation utilisateur du traitement réalisé\n    Notify(\n        \"Les arrêtés sont partis à la signature de l'Autorité pour \" & CountRows(dlstDemandes_M.SelectedItems) & \" demande(s)\" ,\n        NotificationType.Success,2000\n    );     \n        \n    // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n    Select(BtnLoadDemandes_M);\n\n    // Marque le processus comme terminé \n    // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n    UpdateContext({\n        vcWizardStep:       numPromEnvoiSave_M.Value + 1 ,\n        vcWizardCompleted:  true,\n        \n        // Conservation du mécanisme _DynamicOnStatus : \n        // les demandes restent visibles après traitement,\n        // mais désormais dans leur statut cible\n        vcApplyFilterOnStatus_V3:      Table(MyNextStatus_V2,MyCurrentStatuses_V2)\n    })\n);\n\n"
+                                          OnSelect: "=With({\n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus:        cmpActBtnPromEnvoi_M.NextStatusData,\n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MySourceStatuses :  cmpActBtnPromEnvoi_M.SourceStatusesData\n    },\n\n    // # Applique à toutes les demandes sélectionnées\n    //      - le changement de statut  \n    //      - les champs d'entrée complémentaires\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            },\n            {\n                DatePromSend: dtePromEnvoiDate_M.SelectedDate\n            }\n        )        \n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        ForAll(\n            // Envoi des notifications regroupées par SPW afin d'éviter l'envoi d'un email par demande\n            Distinct(dlstDemandes_M.SelectedItems,SPW) As MyCurrentSpw,\n            With({MyDemandeSPW : \n                    Filter(dlstDemandes_M.SelectedItems,SPW = MyCurrentSpw.Value)\n                },\n                With(\n                    {\n                        MyTypeDemande :     First(MyDemandeSPW).TypeDemandeValue,\n                        MyNbDemandes :      Value(CountRows(MyDemandeSPW)),\n                        MySpw :             MyCurrentSpw.Value,\n                        MyListeEmploiHtml : Concat( MyDemandeSPW,\"<li>\" & NumEmploi & \"</li>\" & Char(10) ),\n                        MyRecipients :      _DFAEmailList(MyCurrentSpw.Value)\n                    },\n                    If(IsBlank(MyRecipients),\n                        // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                        Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                        // Envoi standard\n                        Office365Outlook.SendEmailV2(\n                            // To  : distribution list\n                            MyRecipients,\n                            // Subject: notification métier                   \n                            _txtMessage.EmailSubjectPrefix \n                                &   \"Les arrêtés sont partis à la signature de l'Autorité\" ,     \n                            // Body: informations détaillées\n                            \"<p>Bonjour,</p> \" \n                                & \"<i>[\" & MyTypeDemande & \"]: </i> Les arrêtés sont partis à la signature de l'Autorité pour les emplois suivants:\"\n                                & \"<p><strong>\" & MySpw &\"</strong></p>\n                                    <ul>\"\n                                    & MyListeEmploiHtml\n                                    &\"</ul>\"                                      \n                            & _txtMessage.EmailFooter \n                        );\n                    )\n                )\n            )\n        );\n\n        ,       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus.StatusKey,\n            vvUserRole.Key\n        );\n    );\n\n    // Confirmation utilisateur du traitement réalisé\n    Notify(\n        \"Les arrêtés sont partis à la signature de l'Autorité pour \" & CountRows(dlstDemandes_M.SelectedItems) & \" demande(s)\" ,\n        NotificationType.Success,2000\n    );     \n        \n    // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n    Select(BtnLoadDemandes_M);\n\n    // Marque le processus comme terminé \n    // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n    UpdateContext({\n        vcWizardStep:       numPromEnvoiSave_M.Value + 1 ,\n        vcWizardCompleted:  true,\n        \n        // Conservation du mécanisme _DynamicOnStatus : \n        // les demandes restent visibles après traitement,\n        // mais désormais dans leur statut cible\n        vcApplyFilterOnStatus_V3:      Table(MyNextStatus,MySourceStatuses)\n    })\n);\n\n"
                                           PaddingBottom: =5
                                           PaddingLeft: =5
                                           PaddingRight: =12
@@ -3425,7 +3531,7 @@ Screens:
                                           DisplayMode: =If(vcWizardStep = numPromRedacSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                                           FontWeight: =FontWeight.Bold
                                           Layout: =ButtonLayout.TextOnly
-                                          OnSelect: "=With(\n    { \n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus_V2:        cmpActBtnPromRedac_M.NextStatusData,\n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MyCurrentStatuses_V2 :  cmpActBtnPromRedac_M.SourceStatusesData\n    },\n\n    // # Applique le changement de statut à toutes les demandes sélectionnées\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,\n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            }\n        )        \n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        // pas de notif\n        false\n\n        ,       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus_V2.StatusKey,\n            vvUserRole.Key\n        )\n    );\n\n    // Confirmation utilisateur du traitement réalisé\n    Notify(\n        CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) modifiée(s)\" ,\n        NotificationType.Success,2000\n    );     \n           \n    // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n    Select(BtnLoadDemandes_M);\n\n\n    // Marque le processus comme terminé \n    // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n    UpdateContext({\n        vcWizardStep:       numPromRedacSave_M.Value + 1 ,\n        vcWizardCompleted:  true,\n        // Conservation du mécanisme _DynamicOnStatus : \n        // les demandes restent visibles après traitement,\n        // mais désormais dans leur statut cible\n        vcApplyFilterOnStatus_V3:      Table(MyNextStatus_V2 , MyCurrentStatuses_V2)\n    }) \n);\n\n"
+                                          OnSelect: "=With(\n    { \n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus:        cmpActBtnPromRedac_M.NextStatusData,\n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MySourceStatuses :  cmpActBtnPromRedac_M.SourceStatusesData\n    },\n\n    // # Applique le changement de statut à toutes les demandes sélectionnées\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            }\n        )        \n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        // pas de notif\n        false\n\n        ,       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus.StatusKey,\n            vvUserRole.Key\n        )\n    );\n\n    // Confirmation utilisateur du traitement réalisé\n    Notify(\n        CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) modifiée(s)\" ,\n        NotificationType.Success,2000\n    );     \n           \n    // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n    Select(BtnLoadDemandes_M);\n\n\n    // Marque le processus comme terminé \n    // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n    UpdateContext({\n        vcWizardStep:       numPromRedacSave_M.Value + 1 ,\n        vcWizardCompleted:  true,\n        // Conservation du mécanisme _DynamicOnStatus : \n        // les demandes restent visibles après traitement,\n        // mais désormais dans leur statut cible\n        vcApplyFilterOnStatus_V3:      Table(MyNextStatus , MySourceStatuses)\n    }) \n);\n\n"
                                           PaddingBottom: =5
                                           PaddingLeft: =5
                                           PaddingRight: =12
@@ -3802,11 +3908,11 @@ Screens:
                                             =With({
                                                                         // Statut cible 
                                                                         //(à priori déclaré sur le bouton de lancement du processus)
-                                                                        MyNextStatus_V2:        cmpActBtnCODIDecision_M.NextStatusData,
+                                                                        MyNextStatus:        cmpActBtnCODIDecision_M.NextStatusData,
                                                                         // Statuts depuis lesquels le processus peut être exécuté 
                                                                         // (à priori déclaré sur le bouton de lancement du processus)
                                                                         // (utilisés plus loin pour maintenir le filtre après traitement)
-                                                                        MyCurrentStatuses_V2 :  cmpActBtnCODIDecision_M.SourceStatusesData
+                                                                        MySourceStatuses :  cmpActBtnCODIDecision_M.SourceStatusesData
                                                                     },
 
                                             // Ouvre l'écran de traitement de la demande sélectionnée.
@@ -3828,7 +3934,7 @@ Screens:
                                                     UpdateContext({
                                                             vcWizardStep: numCODIDecisionSave_M.Value + 1 ,
                                                             vcWizardCompleted: true,
-                                                            vcApplyFilterOnStatus_V3: Table( MyNextStatus_V2,MyCurrentStatuses_V2)
+                                                            vcApplyFilterOnStatus_V3: Table( MyNextStatus,MySourceStatuses)
                                                         })
                                                 );
                                             );
@@ -4116,7 +4222,7 @@ Screens:
                                           DisplayMode: =If(vcWizardStep = numCandAudSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                                           FontWeight: =FontWeight.Bold
                                           Layout: =ButtonLayout.TextOnly
-                                          OnSelect: "=With(\n    { \n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus_V2:        cmpActBtnCandAud_M.NextStatusData,\n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MyCurrentStatuses_V2 :  cmpActBtnCandAud_M.SourceStatusesData\n    },\n\n    // # Applique le changement de statut à toutes les demandes sélectionnées\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,\n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            },\n            {\n                DateCandAudition: dteCandAudDate_M.SelectedDate\n            }\n        )        \n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        false,\n       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus_V2.StatusKey,\n            vvUserRole.Key\n        );\n    );\n\n\n    // Confirmation utilisateur du traitement réalisé\n    Notify(\n        \"Date d'audition fixée au \" & dteCandAudDate_M.SelectedDate & \" pour \" & CountRows(dlstDemandes_M.SelectedItems) & \" demande(s)\",\n        NotificationType.Success,2000\n    );\n         \n    // # Recharge les données pour refléter les changements en UI\n    Select(BtnLoadDemandes_M);\n\n    // Marque le processus comme terminé \n    // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n    UpdateContext({\n        vcWizardStep:           numCandAudSave_M.Value + 1,\n        vcWizardCompleted:      true,\n        // Conservation du mécanisme _DynamicOnStatus : \n        // les demandes restent visibles après traitement,\n        // mais désormais dans leur statut cible\n        vcApplyFilterOnStatus_V3:      Table({StatusKey : MyNextStatus_V2.StatusKey} , MyCurrentStatuses_V2.StatusKey)\n    }) \n);\n\n"
+                                          OnSelect: "=With(\n    { \n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus:        cmpActBtnCandAud_M.NextStatusData,\n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MySourceStatuses :  cmpActBtnCandAud_M.SourceStatusesData\n    },\n\n    // # Applique le changement de statut à toutes les demandes sélectionnées\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            },\n            {\n                DateCandAudition: dteCandAudDate_M.SelectedDate\n            }\n        )        \n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        false,\n       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus.StatusKey,\n            vvUserRole.Key\n        );\n    );\n\n\n    // Confirmation utilisateur du traitement réalisé\n    Notify(\n        \"Date d'audition fixée au \" & dteCandAudDate_M.SelectedDate & \" pour \" & CountRows(dlstDemandes_M.SelectedItems) & \" demande(s)\",\n        NotificationType.Success,2000\n    );\n         \n    // # Recharge les données pour refléter les changements en UI\n    Select(BtnLoadDemandes_M);\n\n    // Marque le processus comme terminé \n    // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n    UpdateContext({\n        vcWizardStep:           numCandAudSave_M.Value + 1,\n        vcWizardCompleted:      true,\n        // Conservation du mécanisme _DynamicOnStatus : \n        // les demandes restent visibles après traitement,\n        // mais désormais dans leur statut cible\n        vcApplyFilterOnStatus_V3:      Table({StatusKey : MyNextStatus.StatusKey} , MySourceStatuses.StatusKey)\n    }) \n);\n\n"
                                           PaddingBottom: =5
                                           PaddingLeft: =5
                                           PaddingRight: =12
@@ -4310,7 +4416,7 @@ Screens:
                                           DisplayMode: =If(vcWizardStep = numSendDFASave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                                           FontWeight: =FontWeight.Bold
                                           Layout: =ButtonLayout.TextOnly
-                                          OnSelect: "=With({\n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus_V2 : cmpActBtnCandSendDFA_M.NextStatusData, \n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MyCurrentStatuses_V2 : cmpActBtnCandSendDFA_M.SourceStatusesData\n    },\n\n    // # Applique à toutes les demandes sélectionnées\n    //      - le changement de statut  \n    //      - les champs d'entrée complémentaires\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,\n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            },\n            {\n                DateCandEnvoi: Today() \n            }\n        )        \n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        // # Aucun envoi de notification pour cette action\n        false\n        \n        ,       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus_V2.StatusKey,\n            vvUserRole.Key\n        );\n    );\n\n    // Confirmation utilisateur du traitement réalisé\n    Notify(\n        CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) a/ont été envoyée(s) à la DFA\" ,\n        NotificationType.Success,2000\n    );     \n        \n    // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n    Select(BtnLoadDemandes_M);\n\n    // Marque le processus comme terminé \n    // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n    UpdateContext({\n        vcWizardStep:           numSendDFASave_M.Value + 1 ,\n        vcWizardCompleted:      true,\n        \n        /* Conservation du mécanisme _DynamicOnStatus : \n            les demandes restent visibles après traitement,\n            mais désormais dans leur statut cible */\n        vcApplyFilterOnStatus_V3:   Table([MyNextStatus_V2], MyCurrentStatuses_V2)\n    })\n)\n\n"
+                                          OnSelect: "=With({\n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus : cmpActBtnCandSendDFA_M.NextStatusData, \n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MySourceStatuses : cmpActBtnCandSendDFA_M.SourceStatusesData\n    },\n\n    // # Applique à toutes les demandes sélectionnées\n    //      - le changement de statut  \n    //      - les champs d'entrée complémentaires\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            },\n            {\n                DateCandEnvoi: Today() \n            }\n        )        \n    );\n\n    Concurrent(\n        // # envoi de notification pour cette action\n        // # Aucun envoi de notification pour cette action\n        false\n        \n        ,       \n        // # Trace chaque changement de statut dans l'historique\n        fxLogStatusHistory(\n            ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n            MyNextStatus.StatusKey,\n            vvUserRole.Key\n        );\n    );\n\n    // Confirmation utilisateur du traitement réalisé\n    Notify(\n        CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) a/ont été envoyée(s) à la DFA\" ,\n        NotificationType.Success,2000\n    );     \n        \n    // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n    Select(BtnLoadDemandes_M);\n\n    // Marque le processus comme terminé \n    // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n    UpdateContext({\n        vcWizardStep:           numSendDFASave_M.Value + 1 ,\n        vcWizardCompleted:      true,\n        \n        /* Conservation du mécanisme _DynamicOnStatus : \n            les demandes restent visibles après traitement,\n            mais désormais dans leur statut cible */\n        vcApplyFilterOnStatus_V3:   Table([MyNextStatus], MySourceStatuses)\n    })\n)\n\n"
                                           PaddingBottom: =5
                                           PaddingLeft: =5
                                           PaddingRight: =12
@@ -4620,20 +4726,20 @@ Screens:
                                                 { 
                                                     // Statut cible 
                                                     //(à priori déclaré sur le bouton de lancement du processus)
-                                                    MyNextStatus_V2:        cmpActBtnCandAppel_M.NextStatusData,
+                                                    MyNextStatus:        cmpActBtnCandAppel_M.NextStatusData,
                                                     // Statuts depuis lesquels le processus peut être exécuté 
                                                     // (à priori déclaré sur le bouton de lancement du processus)
                                                     // (utilisés plus loin pour maintenir le filtre après traitement)
-                                                    MyCurrentStatuses_V2 :  cmpActBtnCandAppel_M.SourceStatusesData
+                                                    MySourceStatuses :  cmpActBtnCandAppel_M.SourceStatusesData
                                                 },
                                                 // # Applique le changement de statut à toutes les demandes sélectionnées
                                                 ForAll(dlstDemandes_M.SelectedItems,
                                                     Patch(AIRH_Demandes,
                                                         ShowColumns( ThisRecord,ID),
                                                         {
-                                                            StatusKey:          MyNextStatus_V2.StatusKey,
-                                                            'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                            'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                            StatusKey:          MyNextStatus.StatusKey,
+                                                            'Statut Detail':    MyNextStatus.StatutDetail,
+                                                            'Statut General':   MyNextStatus.StatutGeneral
                                                         },
                                                         {
                                                             DateCandidFinAppel: dteCandAppelidDate_M.SelectedDate
@@ -4682,7 +4788,7 @@ Screens:
                                                     // # Trace chaque changement de statut dans l'historique
                                                     fxLogStatusHistory(
                                                         ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
-                                                        MyNextStatus_V2.StatusKey,
+                                                        MyNextStatus.StatusKey,
                                                         vvUserRole.Key
                                                     );
                                                 );
@@ -4705,7 +4811,7 @@ Screens:
                                                     /* Conservation du mécanisme _DynamicOnStatus : 
                                                         les demandes restent visibles après traitement,
                                                         mais désormais dans leur statut cible */
-                                                    vcApplyFilterOnStatus_V3:   Table(MyNextStatus_V2, MyCurrentStatuses_V2)
+                                                    vcApplyFilterOnStatus_V3:   Table(MyNextStatus, MySourceStatuses)
                                                 }) 
                                             );
 
@@ -5261,17 +5367,17 @@ Screens:
                                                 { 
                                                     // Statut cible 
                                                     //(à priori déclaré sur le bouton de lancement du processus)
-                                                    MyNextStatus_V2:    
+                                                    MyNextStatus:    
                                                         Switch(radGWdecisionChoice_M.Selected.Value ,
                                                             _Decision.Validée,
-                                                                LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.NGWGWDVValidee),
+                                                                LookUp(_StatutConfigTable,StatusKey = _StatusKey.NGWGWDVValidee),
                                                             _Decision.Refusée,
-                                                                LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.GWRefusee)
+                                                                LookUp(_StatutConfigTable,StatusKey = _StatusKey.GWRefusee)
                                                         ),
                                                     // Statuts depuis lesquels le processus peut être exécuté 
                                                     // (à priori déclaré sur le bouton de lancement du processus)
                                                     // (utilisés plus loin pour maintenir le filtre après traitement)
-                                                    MyCurrentStatuses_V2:   cmpActBtnGWDecision_M.SourceStatusesData
+                                                    MySourceStatuses:   cmpActBtnGWDecision_M.SourceStatusesData
                                                 },
 
                                                 // # Applique le changement de statut à toutes les demandes sélectionnées
@@ -5279,9 +5385,9 @@ Screens:
                                                     Patch(AIRH_Demandes,
                                                         ShowColumns( ThisRecord,ID),
                                                         {
-                                                            StatusKey:          MyNextStatus_V2.StatusKey,
-                                                            'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                            'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                            StatusKey:          MyNextStatus.StatusKey,
+                                                            'Statut Detail':    MyNextStatus.StatutDetail,
+                                                            'Statut General':   MyNextStatus.StatutGeneral
                                                         },
                                                         Switch(radGWdecisionChoice_M.Selected.Value ,
                                                             _Decision.Validée,
@@ -5347,7 +5453,7 @@ Screens:
                                                     // # Trace chaque changement de statut dans l'historique
                                                     fxLogStatusHistory(
                                                         ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
-                                                        MyNextStatus_V2.StatusKey,
+                                                        MyNextStatus.StatusKey,
                                                         vvUserRole.Key
                                                     );
                                                 );
@@ -5364,7 +5470,7 @@ Screens:
                                                     /* Conservation du mécanisme _DynamicOnStatus : 
                                                         les demandes restent visibles après traitement,
                                                         mais désormais dans leur statut cible */
-                                                    vcApplyFilterOnStatus_V3:   Table(MyNextStatus_V2, MyCurrentStatuses_V2)
+                                                    vcApplyFilterOnStatus_V3:   Table(MyNextStatus, MySourceStatuses)
                                                 })
                                             );
                                           PaddingBottom: =5
@@ -5657,7 +5763,7 @@ Screens:
                                           DisplayMode: =If(vcWizardStep = numCOSTRADecisionSAVE_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                                           FontWeight: =FontWeight.Bold
                                           Layout: =ButtonLayout.TextOnly
-                                          OnSelect: "=Switch(radCOSTRAdecisionChoice_M.Selected.Value ,\n    _Decision.Validée,\n        With(\n            { \n                // Statut cible \n                //(à priori déclaré sur le bouton de lancement du processus)\n                MyNextStatus_V2:    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.NGWAuGW),\n                // Statuts depuis lesquels le processus peut être exécuté \n                // (à priori déclaré sur le bouton de lancement du processus)\n                // (utilisés plus loin pour maintenir le filtre après traitement)\n                MyCurrentStatuses_V2:   cmpActBtnCOSTRADecision_M.SourceStatusesData\n            },\n\n            // # Applique le changement de statut à toutes les demandes sélectionnées\n            ForAll(dlstDemandes_M.SelectedItems,\n                Patch(AIRH_Demandes,\n                    ShowColumns( ThisRecord,ID),\n                    {\n                        StatusKey:          MyNextStatus_V2.StatusKey,\n                        'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                        'Statut General':   MyNextStatus_V2.StatutGeneral\n                    }\n                )\n            );\n\n            Concurrent(\n                // # envoi de notification pour cette action\n                // # Aucun envoi de notification pour cette action\n                false\n                ,       \n                // # Trace chaque changement de statut dans l'historique\n                fxLogStatusHistory(\n                    ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n                    MyNextStatus_V2.StatusKey,\n                    vvUserRole.Key\n                );\n            );\n                        \n            // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n            Select(BtnLoadDemandes_M);\n\n            // Confirmation utilisateur du traitement réalisé\n            Notify(\n                CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) a/ont été validées par le COSTRA\",\n                NotificationType.Success,2000\n            );\n\n            // Advance the wizard to the confirmation/next stage\n            UpdateContext({\n                vcWizardStep:    numCOSTRADecisionSAVE_M.Value + 1 ,\n                /* Conservation du mécanisme _DynamicOnStatus : \n                    les demandes restent visibles après traitement,\n                    mais désormais dans leur statut cible */\n                vcApplyFilterOnStatus_V3:   Table(MyNextStatus_V2, MyCurrentStatuses_V2)\n            })\n        );\n\n    ,   \n    _Decision.Refusée,\n    With(\n        { \n            // Statut cible \n            //(à priori déclaré sur le bouton de lancement du processus)\n            MyNextStatus_V2:    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.COSTRARefusee),\n            // Statuts depuis lesquels le processus peut être exécuté \n            // (à priori déclaré sur le bouton de lancement du processus)\n            // (utilisés plus loin pour maintenir le filtre après traitement)\n            MyCurrentStatuses_V2:   cmpActBtnCOSTRADecision_M.SourceStatusesData\n        },\n        // Ouvre l'écran de traitement de la demande sélectionnée.\n        // Charge la demande complète ainsi que les configurations nécessaires\n        // afin d'initialiser correctement le contexte métier du formulaire.\n        With({ MyDemande :   dlstDemandes_M.Selected},\n            Navigate(Screen_Form_F,\n                Transition.Pop,\n                {\n                    vcDemande:              LookUp(AIRH_Demandes,           ID = dlstDemandes_M.Selected.ID ), // MyDemande.ID générait une erreur de delegation (probable faux positif du compilateur)\n                    // Indique que l’écran est ouvert en mode édition afin d’adapter l’interface et les boutons disponibles\n                    // Remarque : le mode des formulaires est piloté dynamiquement via vcStatutConfig afin de respecter les règles métier liées au statut\n                    vcScreenIsReadOnly :    false,\n                    vcTypeDemandeConfig :   LookUp(_TypeDemandeConfigTable, Type =  MyDemande.TypeDemandeValue),\n                    vcStatutConfig :        LookUp(_StatutConfigTable,      StatusKey = MyDemande.StatusKey),            \n                    vcPosteInformation:     Blank()     \n                }\n            );\n            UpdateContext({\n                    vcWizardStep:    numCOSTRADecisionSAVE_M.Value + 1 ,\n                    /* Conservation du mécanisme _DynamicOnStatus : \n                        les demandes restent visibles après traitement,\n                        mais désormais dans leur statut cible */\n                    vcApplyFilterOnStatus_V3:   Table(MyNextStatus_V2, MyCurrentStatuses_V2)\n                 })\n        )\n    );\n)"
+                                          OnSelect: "=Switch(radCOSTRAdecisionChoice_M.Selected.Value ,\n    _Decision.Validée,\n        With(\n            { \n                // Statut cible \n                //(à priori déclaré sur le bouton de lancement du processus)\n                MyNextStatus:    LookUp(_StatutConfigTable,StatusKey = _StatusKey.NGWAuGW),\n                // Statuts depuis lesquels le processus peut être exécuté \n                // (à priori déclaré sur le bouton de lancement du processus)\n                // (utilisés plus loin pour maintenir le filtre après traitement)\n                MySourceStatuses:   cmpActBtnCOSTRADecision_M.SourceStatusesData\n            },\n\n            // # Applique le changement de statut à toutes les demandes sélectionnées\n            ForAll(dlstDemandes_M.SelectedItems,\n                Patch(AIRH_Demandes,\n                    ShowColumns( ThisRecord,ID),\n                    {\n                        StatusKey:          MyNextStatus.StatusKey,\n                        'Statut Detail':    MyNextStatus.StatutDetail,\n                        'Statut General':   MyNextStatus.StatutGeneral\n                    }\n                )\n            );\n\n            Concurrent(\n                // # envoi de notification pour cette action\n                // # Aucun envoi de notification pour cette action\n                false\n                ,       \n                // # Trace chaque changement de statut dans l'historique\n                fxLogStatusHistory(\n                    ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n                    MyNextStatus.StatusKey,\n                    vvUserRole.Key\n                );\n            );\n                        \n            // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n            Select(BtnLoadDemandes_M);\n\n            // Confirmation utilisateur du traitement réalisé\n            Notify(\n                CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) a/ont été validées par le COSTRA\",\n                NotificationType.Success,2000\n            );\n\n            // Advance the wizard to the confirmation/next stage\n            UpdateContext({\n                vcWizardStep:    numCOSTRADecisionSAVE_M.Value + 1 ,\n                /* Conservation du mécanisme _DynamicOnStatus : \n                    les demandes restent visibles après traitement,\n                    mais désormais dans leur statut cible */\n                vcApplyFilterOnStatus_V3:   Table(MyNextStatus, MySourceStatuses)\n            })\n        );\n\n    ,   \n    _Decision.Refusée,\n    With(\n        { \n            // Statut cible \n            //(à priori déclaré sur le bouton de lancement du processus)\n            MyNextStatus:    LookUp(_StatutConfigTable,StatusKey = _StatusKey.COSTRARefusee),\n            // Statuts depuis lesquels le processus peut être exécuté \n            // (à priori déclaré sur le bouton de lancement du processus)\n            // (utilisés plus loin pour maintenir le filtre après traitement)\n            MySourceStatuses:   cmpActBtnCOSTRADecision_M.SourceStatusesData\n        },\n        // Ouvre l'écran de traitement de la demande sélectionnée.\n        // Charge la demande complète ainsi que les configurations nécessaires\n        // afin d'initialiser correctement le contexte métier du formulaire.\n        With({ MyDemande :   dlstDemandes_M.Selected},\n            Navigate(Screen_Form_F,\n                Transition.Pop,\n                {\n                    vcDemande:              LookUp(AIRH_Demandes,           ID = dlstDemandes_M.Selected.ID ), // MyDemande.ID générait une erreur de delegation (probable faux positif du compilateur)\n                    // Indique que l’écran est ouvert en mode édition afin d’adapter l’interface et les boutons disponibles\n                    // Remarque : le mode des formulaires est piloté dynamiquement via vcStatutConfig afin de respecter les règles métier liées au statut\n                    vcScreenIsReadOnly :    false,\n                    vcTypeDemandeConfig :   LookUp(_TypeDemandeConfigTable, Type =  MyDemande.TypeDemandeValue),\n                    vcStatutConfig :        LookUp(_StatutConfigTable,      StatusKey = MyDemande.StatusKey),            \n                    vcPosteInformation:     Blank()     \n                }\n            );\n            UpdateContext({\n                    vcWizardStep:    numCOSTRADecisionSAVE_M.Value + 1 ,\n                    /* Conservation du mécanisme _DynamicOnStatus : \n                        les demandes restent visibles après traitement,\n                        mais désormais dans leur statut cible */\n                    vcApplyFilterOnStatus_V3:   Table(MyNextStatus, MySourceStatuses)\n                 })\n        )\n    );\n)"
                                           PaddingBottom: =5
                                           PaddingLeft: =5
                                           PaddingRight: =12
@@ -5961,11 +6067,11 @@ Screens:
                                             =With({
                                                     // Statut cible 
                                                     //(à priori déclaré sur le bouton de lancement du processus)
-                                                    MyNextStatus_V2:    cmpActBtnSendGW.NextStatusData,
+                                                    MyNextStatus:    cmpActBtnSendGW.NextStatusData,
                                                     // Statuts depuis lesquels le processus peut être exécuté 
                                                     // (à priori déclaré sur le bouton de lancement du processus)
                                                     // (utilisés plus loin pour maintenir le filtre après traitement)
-                                                    MyCurrentStatuses_V2:   cmpActBtnSendGW.SourceStatusesData
+                                                    MySourceStatuses:   cmpActBtnSendGW.SourceStatusesData
                                                 },
 
                                                 // # Applique à toutes les demandes sélectionnées
@@ -5975,9 +6081,9 @@ Screens:
                                                     Patch(AIRH_Demandes,
                                                         ShowColumns( ThisRecord,ID),
                                                         {
-                                                            StatusKey:          MyNextStatus_V2.StatusKey,
-                                                            'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                            'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                            StatusKey:          MyNextStatus.StatusKey,
+                                                            'Statut Detail':    MyNextStatus.StatutDetail,
+                                                            'Statut General':   MyNextStatus.StatutGeneral
                                                         },
                                                         {
                                                             DateGWSend: dteSendGWDate_M.SelectedDate
@@ -5993,7 +6099,7 @@ Screens:
                                                     // # Trace chaque changement de statut dans l'historique
                                                     fxLogStatusHistory(
                                                         ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
-                                                        MyNextStatus_V2.StatusKey,
+                                                        MyNextStatus.StatusKey,
                                                         vvUserRole.Key
                                                     );
                                                 );
@@ -6016,7 +6122,7 @@ Screens:
                                                     /* Conservation du mécanisme _DynamicOnStatus : 
                                                         les demandes restent visibles après traitement,
                                                         mais désormais dans leur statut cible */
-                                                    vcApplyFilterOnStatus_V3:   Table(MyNextStatus_V2, MyCurrentStatuses_V2)
+                                                    vcApplyFilterOnStatus_V3:   Table(MyNextStatus, MySourceStatuses)
                                                 })
                                             )
 
@@ -6308,7 +6414,7 @@ Screens:
                                           DisplayMode: =If(vcWizardStep = numDirCandidSave_M.Value ,DisplayMode.Edit, DisplayMode.Disabled)
                                           FontWeight: =FontWeight.Bold
                                           Layout: =ButtonLayout.TextOnly
-                                          OnSelect: "=With(\n    { \n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus_V2:        \n            Switch(radDirCandidChoice_M.Selected.Value ,\n                _Decision.DirNoCand,    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DirReaffPasCandid),\n                _Decision.DirAudition,    LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DirReaffAuditCODI)\n            ),\n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MyCurrentStatuses_V2 :  cmpActBtnDirCandid_M.SourceStatusesData\n    },\n    // # Applique le changement de statut à toutes les demandes sélectionnées\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus_V2.StatusKey,\n                'Statut Detail':    MyNextStatus_V2.StatutDetail,\n                'Statut General':   MyNextStatus_V2.StatutGeneral\n            }\n        )\n    );\n    Concurrent(\n        Switch(radDirCandidChoice_M.Selected.Value ,\n            _Decision.DirNoCand,\n                // # Notifie le DAC des demandes traitées en masse\n                With(\n                    {\n                        MyTypeDemande :     First(dlstDemandes_M.SelectedItems).TypeDemandeValue,\n                        MyNbDemandes :      Value(CountRows(dlstDemandes_M.SelectedItems)),\n                        MySpw :             First(dlstDemandes_M.SelectedItems).SPW,\n                        MyListeEmploiHtml : Concat( dlstDemandes_M.SelectedItems,\"<li>\" & NumEmploi & \"</li>\" & Char(10) ),\n                        MyRecipients : _DACEmailList()\n                    },\n                    Office365Outlook.SendEmailV2(\n                        MyRecipients,                     // To  : liste DAC\n                        _txtMessage.EmailSubjectPrefix &   \"Absence de candidat à la réaffectation\",     // Subject: notification métier\n                        // Body: liste des demandes concernées\n                        \"<p>Bonjour,</p>\n                        <p>Pas de candidat à la réaffectation pour les \" & MyNbDemandes  & \" demande(s) (\" & MyTypeDemande &  \") suivantes : </p>\n                        <p><strong>\" & MySpw &\"</strong></p>\n                        <ul>\"\n                        & MyListeEmploiHtml\n                        &\"</ul>\"\n                        & _txtMessage.EmailFooter \n                    );\n                ),\n            _Decision.DirAudition,\n                // # Aucun envoi de notification pour cette action\n                false\n        )\n       ,\n\n    // # Trace chaque changement de statut dans l'historique\n    fxLogStatusHistory(\n        ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n        MyNextStatus_V2.StatusKey,\n        vvUserRole.Key\n    )\n    );\n                                \n    // Confirmation utilisateur du traitement réalisé\n    Notify(CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) a/ont été correctement traitée(s)\" ,\n        NotificationType.Success,2000);\n\n        // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n        Select(BtnLoadDemandes_M);\n\n        // Marque le processus comme terminé \n        // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n        UpdateContext({\n            vcWizardStep:        numDirCandidSave_M.Value + 1 ,\n            vcWizardCompleted:  true,\n\n        /* Conservation du mécanisme _DynamicOnStatus : \n            les demandes restent visibles après traitement,\n            mais désormais dans leur statut cible */\n        vcApplyFilterOnStatus_V3:   Table(MyNextStatus_V2, MyCurrentStatuses_V2)\n        }) \n);\n"
+                                          OnSelect: "=With(\n    { \n        // Statut cible \n        //(à priori déclaré sur le bouton de lancement du processus)\n        MyNextStatus:        \n            Switch(radDirCandidChoice_M.Selected.Value ,\n                _Decision.DirNoCand,    LookUp(_StatutConfigTable,StatusKey = _StatusKey.DirReaffPasCandid),\n                _Decision.DirAudition,    LookUp(_StatutConfigTable,StatusKey = _StatusKey.DirReaffAuditCODI)\n            ),\n        // Statuts depuis lesquels le processus peut être exécuté \n        // (à priori déclaré sur le bouton de lancement du processus)\n        // (utilisés plus loin pour maintenir le filtre après traitement)\n        MySourceStatuses :  cmpActBtnDirCandid_M.SourceStatusesData\n    },\n    // # Applique le changement de statut à toutes les demandes sélectionnées\n    ForAll(dlstDemandes_M.SelectedItems,\n        Patch(AIRH_Demandes,\n            ShowColumns( ThisRecord,ID),\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            }\n        )\n    );\n    Concurrent(\n        Switch(radDirCandidChoice_M.Selected.Value ,\n            _Decision.DirNoCand,\n                // # Notifie le DAC des demandes traitées en masse\n                With(\n                    {\n                        MyTypeDemande :     First(dlstDemandes_M.SelectedItems).TypeDemandeValue,\n                        MyNbDemandes :      Value(CountRows(dlstDemandes_M.SelectedItems)),\n                        MySpw :             First(dlstDemandes_M.SelectedItems).SPW,\n                        MyListeEmploiHtml : Concat( dlstDemandes_M.SelectedItems,\"<li>\" & NumEmploi & \"</li>\" & Char(10) ),\n                        MyRecipients : _DACEmailList()\n                    },\n                    Office365Outlook.SendEmailV2(\n                        MyRecipients,                     // To  : liste DAC\n                        _txtMessage.EmailSubjectPrefix &   \"Absence de candidat à la réaffectation\",     // Subject: notification métier\n                        // Body: liste des demandes concernées\n                        \"<p>Bonjour,</p>\n                        <p>Pas de candidat à la réaffectation pour les \" & MyNbDemandes  & \" demande(s) (\" & MyTypeDemande &  \") suivantes : </p>\n                        <p><strong>\" & MySpw &\"</strong></p>\n                        <ul>\"\n                        & MyListeEmploiHtml\n                        &\"</ul>\"\n                        & _txtMessage.EmailFooter \n                    );\n                ),\n            _Decision.DirAudition,\n                // # Aucun envoi de notification pour cette action\n                false\n        )\n       ,\n\n    // # Trace chaque changement de statut dans l'historique\n    fxLogStatusHistory(\n        ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),\n        MyNextStatus.StatusKey,\n        vvUserRole.Key\n    )\n    );\n                                \n    // Confirmation utilisateur du traitement réalisé\n    Notify(CountRows(dlstDemandes_M.SelectedItems) & \" demande(s) a/ont été correctement traitée(s)\" ,\n        NotificationType.Success,2000);\n\n        // Recharge les demandes afin de refléter immédiatement les changements de statut dans l'interface\n        Select(BtnLoadDemandes_M);\n\n        // Marque le processus comme terminé \n        // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut\n        UpdateContext({\n            vcWizardStep:        numDirCandidSave_M.Value + 1 ,\n            vcWizardCompleted:  true,\n\n        /* Conservation du mécanisme _DynamicOnStatus : \n            les demandes restent visibles après traitement,\n            mais désormais dans leur statut cible */\n        vcApplyFilterOnStatus_V3:   Table(MyNextStatus, MySourceStatuses)\n        }) \n);\n"
                                           PaddingBottom: =5
                                           PaddingLeft: =5
                                           PaddingRight: =12
@@ -6596,11 +6702,11 @@ Screens:
                                             =With({
                                                     // Statut cible 
                                                     //(à priori déclaré sur le bouton de lancement du processus)
-                                                    // MyNextStatus_V2:        cmpActBtnSendDAC_M.NextStatusData;
+                                                    // MyNextStatus:        cmpActBtnSendDAC_M.NextStatusData;
                                                     // Statuts depuis lesquels le processus peut être exécuté 
                                                     // (à priori déclaré sur le bouton de lancement du processus)
                                                     // (utilisés plus loin pour maintenir le filtre après traitement)
-                                                    MyCurrentStatuses_V2 :  cmpActBtnSendDAC_M.SourceStatusesData
+                                                    MySourceStatuses :  cmpActBtnSendDAC_M.SourceStatusesData
                                                 },
 
                                                 // Create the 'Lot' by updating each selected 'Demande' to its next status (A4 path vs standard path)
@@ -6608,8 +6714,8 @@ Screens:
                                                     With({
                                                         MyDemandeNextStatus:        
                                                             If(MyDemande.Rang = "A4",
-                                                            LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DirReaffConsult),
-                                                            LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DACDVEnPrevision)
+                                                            LookUp(_StatutConfigTable,StatusKey = _StatusKey.DirReaffConsult),
+                                                            LookUp(_StatutConfigTable,StatusKey = _StatusKey.DACDVEnPrevision)
                                                             )
                                                         },
 
@@ -6697,9 +6803,9 @@ Screens:
                                                         mais désormais dans leur statut cible */
                                                     vcApplyFilterOnStatus_V3:   
                                                         Table(                
-                                                            LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DirReaffConsult),
-                                                            LookUp(_StatutConfigTable,StatusKey = _StatusDetailKey.DACDVEnPrevision), 
-                                                            MyCurrentStatuses_V2
+                                                            LookUp(_StatutConfigTable,StatusKey = _StatusKey.DirReaffConsult),
+                                                            LookUp(_StatutConfigTable,StatusKey = _StatusKey.DACDVEnPrevision), 
+                                                            MySourceStatuses
                                                         )
                                                 }) 
                                             );
@@ -6893,20 +6999,20 @@ Screens:
                                             =With({
                                                     // Statut cible 
                                                     //(à priori déclaré sur le bouton de lancement du processus)
-                                                    MyNextStatus_V2:        cmpActBtnSendDAC_M.NextStatusData,
+                                                    MyNextStatus:        cmpActBtnSendDAC_M.NextStatusData,
                                                     // Statuts depuis lesquels le processus peut être exécuté 
                                                     // (à priori déclaré sur le bouton de lancement du processus)
                                                     // (utilisés plus loin pour maintenir le filtre après traitement)
-                                                    MyCurrentStatuses_V2 :  cmpActBtnSendDAC_M.SourceStatusesData
+                                                    MySourceStatuses :  cmpActBtnSendDAC_M.SourceStatusesData
                                                 },
                                                 // # Applique le changement de statut à toutes les demandes sélectionnées
                                                 ForAll(dlstDemandes_M.SelectedItems,
                                                     Patch(AIRH_Demandes,
                                                         ShowColumns( ThisRecord,ID),
                                                         {
-                                                            StatusKey:          MyNextStatus_V2.StatusKey,
-                                                            'Statut Detail':    MyNextStatus_V2.StatutDetail,
-                                                            'Statut General':   MyNextStatus_V2.StatutGeneral
+                                                            StatusKey:          MyNextStatus.StatusKey,
+                                                            'Statut Detail':    MyNextStatus.StatutDetail,
+                                                            'Statut General':   MyNextStatus.StatutGeneral
                                                         }
                                                     )        
                                                 );
@@ -6952,7 +7058,7 @@ Screens:
                                                     // # Trace chaque changement de statut dans l'historique
                                                     fxLogStatusHistory(
                                                         ShowColumns(dlstDemandes_M.SelectedItems,ID,NumEmploi),
-                                                        MyNextStatus_V2.StatusKey,
+                                                        MyNextStatus.StatusKey,
                                                         vvUserRole.Key
                                                     );
                                                 );
@@ -6974,7 +7080,7 @@ Screens:
                                                     // Conservation du mécanisme _DynamicOnStatus : 
                                                     // les demandes restent visibles après traitement,
                                                     // mais désormais dans leur statut cible
-                                                    vcApplyFilterOnStatus_V3:      Table(MyNextStatus_V2 , MyCurrentStatuses_V2)
+                                                    vcApplyFilterOnStatus_V3:      Table(MyNextStatus , MySourceStatuses)
                                                 }) 
                                             );
                                           PaddingBottom: =5
@@ -7056,20 +7162,6 @@ Screens:
                         X: =40
                         Y: =40
                       Children:
-                        - tabTypeDemande_M:
-                            Control: ModernTabList@1.0.2
-                            Properties:
-                              Appearance: =TabListAppearance.SubtleCircular
-                              Default: |-
-                                ={Type : _TypeDemande.All}
-                              Height: =30
-                              ItemDisplayText: =ThisItem.Icon &  ThisItem.Type
-                              Items: |-
-                                =Table(  {Type: _TypeDemande.All}, If(IsBlank(vcCurrentProcess),  _TypeDemandeConfigTable,Filter(_TypeDemandeConfigTable, vcCurrentProcess in Actions)))
-                              LayoutMinHeight: =16
-                              LayoutMinWidth: =16
-                              TabSize: =TabSize.Small
-                              Width: =dlstDemandes_M.Width
                         - dlstDemandes_M:
                             Control: CodeComponent
                             ComponentName: cat_PowerCAT.FluentDetailsList
@@ -7087,7 +7179,7 @@ Screens:
                                 =SortByColumns(
                                     Filter(
                                         Switch(vcApplyFilter ,
-                                            _FilterToApply._DynamicOnStatus_V3,
+                                            _FilterToApply._DynamicOnStatus,
                                                 Filter(
                                                     ccDemandes,
                                                     StatusKey in vcApplyFilterOnStatus_V3.StatusKey

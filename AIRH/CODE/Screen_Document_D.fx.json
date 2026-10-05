@@ -1,0 +1,434 @@
+Screens:
+  Screen_Document_D:
+    Properties:
+      OnVisible: |+
+        =Refresh(AIRH_Documents);
+        UpdateContext({
+            vcShowFileFromLibrary:  false,
+            vcSelectedDoc : Blank()
+        });
+    Children:
+      - ctnMainContainer_D:
+          Control: GroupContainer@1.5.0
+          Variant: AutoLayout
+          Properties:
+            Fill: =RGBA(245, 245, 245, 1)
+            Height: '=Parent.Height '
+            LayoutAlignItems: =LayoutAlignItems.Stretch
+            LayoutDirection: =LayoutDirection.Vertical
+            LayoutGap: =16
+            PaddingBottom: =16
+            PaddingLeft: =16
+            PaddingRight: =16
+            PaddingTop: =16
+            Width: =Parent.Width
+          Children:
+            - ctnHeaderContainer_D:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.SetByContainer
+                  FillPortions: =0
+                  Height: =75
+                  LayoutAlignItems: =LayoutAlignItems.Center
+                  LayoutDirection: =LayoutDirection.Horizontal
+                Children:
+                  - Header_D:
+                      Control: Header@0.0.44
+                      Properties:
+                        Align: =Align.Center
+                        Title: =_AppName & " - " & "Gestion des documents"
+            - ctnInfo_D:
+                Control: GroupContainer@1.5.0
+                Variant: ManualLayout
+                Properties:
+                  Fill: =RGBA(255, 255, 255, 1)
+                  FillPortions: =0
+                  Height: =40
+                  LayoutMinHeight: =16
+                  LayoutMinWidth: =16
+                Children:
+                  - txtInfoMsg_D:
+                      Control: ModernText@1.0.0
+                      Properties:
+                        Align: =Align.Center
+                        Color: =RGBA(15, 84, 140, 1)
+                        Fill: =RGBA(255, 255, 255, 1)
+                        FontWeight: =FontWeight.Bold
+                        Height: =40
+                        Text: ="Ajout d'un document [ " & vcCategorieDocument  & " ]"
+                        Width: =Parent.Width - 2 * Self.X
+            - ctnDocMgmt_D:
+                Control: GroupContainer@1.5.0
+                Variant: AutoLayout
+                Properties:
+                  AlignInContainer: =AlignInContainer.SetByContainer
+                  DropShadow: =DropShadow.None
+                  LayoutAlignItems: =LayoutAlignItems.Stretch
+                  LayoutDirection: =LayoutDirection.Horizontal
+                  LayoutGap: =16
+                  LayoutJustifyContent: =LayoutJustifyContent.Center
+                  LayoutWrap: =true
+                  PaddingBottom: =2
+                  PaddingLeft: =2
+                  PaddingRight: =2
+                  PaddingTop: =2
+                  RadiusBottomLeft: =0
+                  RadiusBottomRight: =0
+                  RadiusTopLeft: =0
+                  RadiusTopRight: =0
+                Children:
+                  - btnActionButton_D:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        DropShadow: =DropShadow.None
+                        FillPortions: =0
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Width: =250
+                      Children:
+                        - btnAddDocument_D:
+                            Control: Button@0.0.45
+                            Properties:
+                              Height: =46
+                              OnSelect: =//This is a FAKE button only for UI. The real action to add file is done in the attachment control
+                              Text: |-
+                                ="📎Ajouter un nouveau document"
+                              Width: =242
+                              Y: =atchAddDocument_D.Y + 37 //atchAddDocument_D.Y + 37
+                        - atchAddDocument_D:
+                            Control: Attachments@2.3.0
+                            Properties:
+                              AddAttachmentText: =Mid( btnAddDocument_D.Text,3)
+                              BorderColor: =Parent.BorderColor
+                              BorderStyle: =BorderStyle.None
+                              Color: =RGBA(0, 0, 0, 0)
+                              DisplayMode: =Parent.DisplayMode
+                              Fill: =RGBA(0, 0, 0, 0)
+                              FontWeight: =FontWeight.Semibold
+                              Height: =120
+                              HoverColor: =RGBA(255, 255, 255, 1)
+                              HoverFill: =App.Theme.Colors.Darker10
+                              Items.Name: =ComplianceAssetId
+                              Items.Value: =OData__ColorTag
+                              MaxAttachmentSize: =25
+                              MaxAttachments: =1
+                              NoAttachmentsText: =""
+                              OnAddFile: |+
+                                =UpdateContext({
+                                    vcShowFileFromLibrary:false,
+                                    vcSelectedDoc: Blank()
+                                });
+
+                                With(
+                                    {MyAttachment : First(Self.Attachments)}, // Remark : The functionality will only allow to add one file
+                                    UpdateContext({
+                                        vcFileUploaded : 
+                                            AIRH_Upload_Files_ToSP.Run(
+                                                MyAttachment.Name, 
+                                                vcCategorieDocument,
+                                                If(!vcBatchMode, 
+                                                    // Link one 'Document' to  single 'Demande'
+                                                    JSON([{DemandeId : Value(vcDemande.ID)}]), // As the folw can handle multiple 'Demandes' we use a Json Table
+                                                    //Else Batch mode - link one 'Document' to  to multiple 'Demandes'
+                                                    JSON(RenameColumns( vcTblIdDemande,ID,DemandeId))
+                                                ),
+                                                {                  
+                                                    file: {
+                                                        contentBytes:   MyAttachment.Value,
+                                                        name:           MyAttachment.Name
+                                                    }
+                                                }
+                                            )
+                                    })
+                                );
+
+                                // Check the upload results
+                                If(
+                                    !IsBlank(vcFileUploaded),
+                                    Notify("Votre document est enregistré !",NotificationType.Success,2000);
+                                    Reset(Self);
+                                    Switch(vcAddDocContext,
+                                        _ActionOnList.AddDoc , 
+                                            Navigate(Screen_Main_M),
+                                        _ActionOnForm.AddDoc , 
+                                            Navigate(Screen_Form_F),
+                                        _ActionOnList.GWDecision , 
+                                            Navigate(Screen_Main_M , Transition.None , 
+                                                {vcWizardStep: 4 }
+                                            ),
+                                        _ActionOnList.CODIDecision , 
+                                            Navigate(Screen_Main_M , Transition.None , 
+                                                {vcWizardStep: 
+                                                    Switch(vcCategorieDocument,
+                                                        _DocumentCategory.PVProvisoire,  numCODIDecisionAddDoc_M.Value + 1 ,
+                                                        _DocumentCategory.PVDefinitif,  numCODIDecisionAddDoc_M_1.Value + 1
+                                                    )
+                                                }
+                                            )
+                                    );
+
+
+                                    ,//Else
+                                    Notify("Désolé, impossible d'enregistrer votre document. Réessayez...",NotificationType.Error,2000)
+                                );
+
+
+
+                              PaddingBottom: =5
+                              PaddingLeft: =If(Self.DisplayMode = DisplayMode.Edit, 5, 0)
+                              PaddingRight: =5
+                              PaddingTop: =5
+                              Size: =11
+                              Tooltip: =
+                              Width: =242
+                              Y: =btnShowLinkedDocument_D.Y +15
+                        - btnShowLinkedDocument_D:
+                            Control: Button@0.0.45
+                            Properties:
+                              Appearance: =If(vcShowFileFromLibrary,    'ButtonCanvas.Appearance'.Secondary,'ButtonCanvas.Appearance'.Primary)
+                              Height: =46
+                              OnSelect: |
+                                =UpdateContext({
+                                    vcShowFileFromLibrary:true,
+                                    vcSelectedDoc: Blank()
+                                });
+                              Text: "=\"\U0001F517 Lier un document existant\" "
+                              Width: =242
+                              Y: =Parent.Height / 2 -Self.Height * 2
+                        - btnBack_D:
+                            Control: ModernButton@1.0.0
+                            Properties:
+                              Align: =Align.Center
+                              FontWeight: =""
+                              Height: =btnAddDocument_D.Height
+                              OnSelect: |-
+                                =Reset(atchAddDocument_D); 
+
+                                Switch(vcAddDocContext,
+                                        _ActionOnList.AddDoc , 
+                                            Navigate(Screen_Main_M),
+                                        _ActionOnForm.AddDoc , 
+                                            Navigate(Screen_Form_F),
+                                        _ActionOnList.GWDecision , 
+                                            Navigate(Screen_Main_M , Transition.None , {vcWizardStep: 3 }),
+                                        _ActionOnList.CODIDecision , 
+                                            Navigate(Screen_Main_M , Transition.None , {vcWizardStep: 2 })
+                                    );
+                              PaddingBottom: =5
+                              PaddingLeft: =12
+                              PaddingRight: =12
+                              PaddingTop: =5
+                              RadiusBottomLeft: =4
+                              RadiusBottomRight: =4
+                              RadiusTopLeft: =4
+                              RadiusTopRight: =4
+                              Text: ="↩️ Annuler"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Width: =btnShowLinkedDocument_D.Width
+                              X: =btnShowLinkedDocument_D.X
+                              Y: =btnAddDocument_D.Y + btnAddDocument_D.Height + 10
+                  - ctnDocumentList_D:
+                      Control: GroupContainer@1.5.0
+                      Variant: ManualLayout
+                      Properties:
+                        LayoutMaxWidth: =400
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        Visible: =vcShowFileFromLibrary
+                      Children:
+                        - galDocuments_D:
+                            Control: Gallery@2.15.0
+                            Variant: BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0
+                            Properties:
+                              Default: =Blank()
+                              Height: =Parent.Height
+                              Items: =SortByColumns( Filter( AIRH_Documents,CategorieDocument.Value = vcCategorieDocument), "Modified",SortOrder.Descending)
+                              OnSelect: |-
+                                =UpdateContext({vcSelectedDoc: ThisItem})
+                              TemplateFill: |
+                                =If(
+                                    ThisItem.ID = vcSelectedDoc.ID,
+                                    App.Theme.Colors.Primary,
+                                    Color.Transparent
+                                )
+                              TemplateSize: =85
+                              Width: =Parent.Width
+                            Children:
+                              - Rectangle4_1:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    Fill: =App.Theme.Colors.Darker30
+                                    Height: =Parent.TemplateHeight - Separator4_1.Height
+                                    OnSelect: =Select(Parent)
+                                    Visible: =ThisItem.IsSelected
+                                    Width: =1
+                              - imgDocPreview_D:
+                                  Control: Image@2.2.3
+                                  Properties:
+                                    Height: =72
+                                    Image: =ThisItem.Miniature.Small
+                                    OnSelect: =Select(Parent)
+                                    RadiusBottomLeft: =8
+                                    RadiusBottomRight: =8
+                                    RadiusTopLeft: =8
+                                    RadiusTopRight: =8
+                                    Width: =72
+                                    Y: =5
+                              - lblModifBy_D:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    BorderColor: =RGBA(0, 0, 0, 1)
+                                    FontWeight: = FontWeight.Normal
+                                    Height: =18
+                                    Italic: =true
+                                    OnSelect: =Select(Parent)
+                                    PaddingBottom: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    Size: =10
+                                    Text: =ThisItem.'Modifié par'.DisplayName
+                                    VerticalAlign: =VerticalAlign.Top
+                                    Width: =lblFileName_D.Width
+                                    X: =lblFileName_D.X
+                                    Y: =57
+                              - lblModifDate_D:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    Align: =Align.Right
+                                    BorderColor: =RGBA(0, 0, 0, 1)
+                                    FontWeight: = FontWeight.Normal
+                                    Height: =lblModifBy_D.Height
+                                    Italic: =true
+                                    OnSelect: =Select(Parent)
+                                    PaddingBottom: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    Size: =10
+                                    Text: =ThisItem.Modifié
+                                    VerticalAlign: =VerticalAlign.Top
+                                    Width: =lblFileName_D.Width
+                                    X: =lblModifBy_D.X
+                                    Y: =lblModifBy_D.Y
+                              - Separator4_1:
+                                  Control: Rectangle@2.3.0
+                                  Properties:
+                                    Fill: =RGBA(255, 255, 255, 1)
+                                    Height: =4
+                                    OnSelect: =Select(Parent)
+                                    Width: =Parent.TemplateWidth
+                                    Y: =Parent.TemplateHeight - Self.Height
+                              - lblFileName_D:
+                                  Control: Label@2.5.1
+                                  Properties:
+                                    BorderColor: =RGBA(0, 0, 0, 1)
+                                    Color: =RGBA(50, 49, 48, 1)
+                                    FontWeight: =If(ThisItem.IsSelected, FontWeight.Semibold, FontWeight.Normal)
+                                    Height: =31
+                                    OnSelect: =Select(Parent)
+                                    PaddingBottom: =0
+                                    PaddingRight: =0
+                                    PaddingTop: =0
+                                    Size: =10
+                                    Text: =ThisItem.'Nom de fichier avec l’extension'
+                                    VerticalAlign: =VerticalAlign.Top
+                                    Width: =Parent.TemplateWidth - Self.X - 10
+                                    X: =72
+                                    Y: =26
+                              - lblCategorieDocument_D:
+                                  Control: ModernText@1.0.0
+                                  Properties:
+                                    Align: =Align.Center
+                                    BorderColor: =App.Theme.Colors.Lighter40
+                                    BorderStyle: =BorderStyle.Solid
+                                    BorderThickness: =3
+                                    Color: =RGBA(0, 0, 0, 1)
+                                    FontWeight: =FontWeight.Bold
+                                    Height: =22
+                                    PaddingBottom: =0
+                                    PaddingTop: =0
+                                    RadiusBottomLeft: =20
+                                    RadiusBottomRight: =Self.RadiusBottomLeft
+                                    RadiusTopLeft: =Self.RadiusBottomLeft
+                                    RadiusTopRight: =Self.RadiusBottomLeft
+                                    Size: =11
+                                    Text: =ThisItem.CategorieDocument.Value
+                                    Width: =Len(Self.Text)*8
+                                    X: =Parent.TemplateWidth - Self.Width
+                  - ctnDocDetails_D:
+                      Control: GroupContainer@1.5.0
+                      Variant: AutoLayout
+                      Properties:
+                        LayoutAlignItems: =LayoutAlignItems.Center
+                        LayoutDirection: =LayoutDirection.Vertical
+                        LayoutGap: =15
+                        LayoutMinHeight: =16
+                        LayoutMinWidth: =16
+                        PaddingBottom: =8
+                        PaddingLeft: =8
+                        PaddingRight: =8
+                        PaddingTop: =8
+                        Visible: =vcShowFileFromLibrary
+                      Children:
+                        - lblNoDocSelected_D:
+                            Control: ModernText@1.0.0
+                            Properties:
+                              Align: =Align.Center
+                              Height: =imgDocMiniaiture_D.Height
+                              Italic: =true
+                              LayoutMinHeight: =16
+                              LayoutMinWidth: =16
+                              Text: =If(galDocuments_D.AllItemsCount = 0 ,"Aucun document connu pour cette catégorie", "Sélectionner un document dans la liste")
+                              Visible: =!imgDocMiniaiture_D.Visible
+                              Width: =300
+                        - imgDocMiniaiture_D:
+                            Control: Image@2.2.3
+                            Properties:
+                              Height: =420
+                              Image: =vcSelectedDoc.Miniature.Large
+                              OnSelect: =Launch(vcSelectedDoc.'Lien vers l’élément')
+                              RadiusBottomLeft: =8
+                              RadiusBottomRight: =8
+                              RadiusTopLeft: =8
+                              RadiusTopRight: =8
+                              Visible: '=!IsBlank(vcSelectedDoc) '
+                              Width: =360
+                              X: =535
+                              Y: =
+                        - btnLinkDocument_D:
+                            Control: ModernButton@1.0.0
+                            Properties:
+                              Align: =Align.Center
+                              FontWeight: =""
+                              OnSelect: "=/*---------------------------------------------------\n Link this document to one or more 'Demande'(s):\n    1) Load the current document record.\n    2) Build the target multi-lookup table by merging existing + new 'Demandes liées' (single or batch).\n    3) Patch the document with the merged lookup values (using `Choices()` to keep the SharePoint lookup \"shape\" correct).\n    4) Clean up temp data (unless debugging), then notify and navigate back.\n    \n    Note: `Choices()` ensures we patch typed lookup records so SharePoint can compute the read-only projected lookup fields\n    (a.k.a. \"additional\"/projected columns like `DemandesLiees: Numéro d'emploi`) from the stored lookup IDs.\n------------------------------------------------*/\n\nWith({MyDocument : LookUp(AIRH_Documents, ID = vcSelectedDoc.ID),test :  LookUp(AIRH_Documents, ID = vcSelectedDoc.ID).'DemandesLiees: Numéro d''emploi'},\n    // Building a temporary Collection where we append to the Existing 'Demandes liées' the new one(s)\n    ClearCollect(ccDemandesLieesUpDated_TEMP, \n        // Keep existing 'Demandes liées' (already linked to this document).\n        MyDocument.DemandesLiees,  \n        // Append new 'Demande'(s) to be linked (single or batch),\n        If(!vcBatchMode,                \n            Table(\n                LookUp( \n                    Choices(AIRH_Documents.DemandesLiees),\n                    Id = Value(vcDemande.ID)\n                )\n            ),\n            ForAll(\n                vcTblIdDemande As MyDemande,\n                LookUp(\n                    Choices(AIRH_Documents.DemandesLiees), \n                    Id = Value(MyDemande.ID)\n                )\n            )\n        )\n    );\n\n    // Save the merged multi-lookup values and document category to SharePoint.    \n    Patch(\n        AIRH_Documents,\n        MyDocument,\n        {\n            DemandesLiees:  ccDemandesLieesUpDated_TEMP,\n            CategorieDocument: { Value: vcCategorieDocument }\n        }\n    );\n    //Free Up Memory    \n    If(Not(vvDebug),Clear(ccDemandesLieesUpDated_TEMP));\n);\n\n// User feedback aligned with single vs batch linking of 'Demande'(s).\nIf(!vcBatchMode,               \n    Notify(_txtMessage.DocLinkedToDemandeSuccess,NotificationType.Success,2000);\n    Notify(_txtMessage.DocLinkedToDemandesSuccess,NotificationType.Success,2000); \n);\n\n\n// Return to previous screen after linking.\n    Switch(vcAddDocContext,\n        _ActionOnList.AddDoc , \n            Navigate(Screen_Main_M),\n        _ActionOnForm.AddDoc , \n            Navigate(Screen_Form_F),\n        _ActionOnList.GWDecision , \n            Navigate(Screen_Main_M , Transition.None , \n                {vcWizardStep: 4 }\n            ),\n        _ActionOnList.CODIDecision , \n            Navigate(Screen_Main_M , Transition.None , \n                {vcWizardStep: \n                    Switch(vcCategorieDocument,\n                        _DocumentCategory.PVProvisoire,  numCODIDecisionAddDoc_M.Value + 1 ,\n                        _DocumentCategory.PVDefinitif,  numCODIDecisionAddDoc_M_1.Value + 1\n                    )\n                }\n            )\n    );"
+                              PaddingBottom: =5
+                              PaddingLeft: =12
+                              PaddingRight: =12
+                              PaddingTop: =5
+                              RadiusBottomLeft: =4
+                              RadiusBottomRight: =4
+                              RadiusTopLeft: =4
+                              RadiusTopRight: =4
+                              Text: |-
+                                ="🔗 Lier ce document"
+                              VerticalAlign: =VerticalAlign.Middle
+                              Visible: =!IsBlank( vcSelectedDoc)
+                              Width: =200
+                              X: =1166
+                              Y: =708
+      - lblDebugActivate_D:
+          Control: Label@2.5.1
+          Properties:
+            Height: =10
+            OnSelect: |-
+              =// Activates debug mode after 10 user clicks, then toggles it on subsequent activations
+              Set(vvDebugActivation, Coalesce(vvDebugActivation, 0) + 1);
+              If(
+                  vvDebugActivation >= 10,
+                  Set(vvDebug,!vvDebug)
+              )
+            Text: =If(vvDebug,"Debug")
+            Width: =40
+            X: =Parent.Width - Self.Width
+            Y: =Parent.Height - Self.Height
