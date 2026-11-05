@@ -122,11 +122,25 @@ Screens:
                                 });
 
                                 With(
-                                    {MyAttachment : First(Self.Attachments)}, // Remark : The functionality will only allow to add one file
+                                    {
+                                        MyAttachment : First(Self.Attachments),
+                                        MyFileNameWithTimeStamp:
+                                            With(
+                                                {
+                                                    MyExtension: Last(Split(First(Self.Attachments).Name, ".")).Value,
+                                                    MyTimestamp: Text(Now(),"yyyymmddhhmmss")
+                                                },
+                                                Substitute(
+                                                    First(Self.Attachments).Name,
+                                                    "." & MyExtension,
+                                                    "_" & MyTimestamp & "." & MyExtension
+                                                )
+                                            )        
+                                    }, // Remark : The functionality will only allow to add one file
                                     UpdateContext({
                                         vcFileUploaded : 
                                             AIRH_Upload_Files_ToSP.Run(
-                                                MyAttachment.Name, 
+                                                MyFileNameWithTimeStamp, 
                                                 vcCategorieDocument,
                                                 If(!vcBatchMode, 
                                                     // Link one 'Document' to  single 'Demande'
@@ -134,12 +148,15 @@ Screens:
                                                     //Else Batch mode - link one 'Document' to  to multiple 'Demandes'
                                                     JSON(RenameColumns( vcTblIdDemande,ID,DemandeId))
                                                 ),
+                                                If(vvUserRole.Key = _Acteur.DAC.Key, ""  , vvUserSPW),
+                                                vcDemande.'Type de demande'.Value,
                                                 {                  
                                                     file: {
                                                         contentBytes:   MyAttachment.Value,
-                                                        name:           MyAttachment.Name
+                                                        name:           MyFileNameWithTimeStamp
                                                     }
                                                 }
+
                                             )
                                     })
                                 );
@@ -244,7 +261,24 @@ Screens:
                             Properties:
                               Default: =Blank()
                               Height: =Parent.Height
-                              Items: =SortByColumns( Filter( AIRH_Documents,CategorieDocument.Value = vcCategorieDocument), "Modified",SortOrder.Descending)
+                              Items: |-
+                                =If(vvUserRole.Key = _Acteur.DAC.Key,
+                                    SortByColumns(
+                                        Filter(
+                                            AIRH_Documents,
+                                            CategorieDocument.Value = vcCategorieDocument
+                                            ),
+                                        "Modified",SortOrder.Descending
+                                    ),
+                                    SortByColumns(
+                                        Filter(
+                                            AIRH_Documents,
+                                            CategorieDocument.Value = vcCategorieDocument,
+                                            SPW = vvUserSPW        
+                                            ),
+                                        "Modified",SortOrder.Descending
+                                    )
+                                )
                               OnSelect: |-
                                 =UpdateContext({vcSelectedDoc: ThisItem})
                               TemplateFill: |
@@ -288,7 +322,7 @@ Screens:
                                     PaddingRight: =0
                                     PaddingTop: =0
                                     Size: =10
-                                    Text: =ThisItem.'Modifié par'.DisplayName
+                                    Text: =ThisItem.'Créé par'.DisplayName
                                     VerticalAlign: =VerticalAlign.Top
                                     Width: =lblFileName_D.Width
                                     X: =lblFileName_D.X
@@ -306,7 +340,7 @@ Screens:
                                     PaddingRight: =0
                                     PaddingTop: =0
                                     Size: =10
-                                    Text: =ThisItem.Modifié
+                                    Text: =ThisItem.Créé
                                     VerticalAlign: =VerticalAlign.Top
                                     Width: =lblFileName_D.Width
                                     X: =lblModifBy_D.X
@@ -331,7 +365,21 @@ Screens:
                                     PaddingRight: =0
                                     PaddingTop: =0
                                     Size: =10
-                                    Text: =ThisItem.'Nom de fichier avec l’extension'
+                                    Text: |-
+                                      =With(
+                                          {
+                                              m: Match(
+                                                  ThisItem.'Nom de fichier avec l’extension',
+                                                  "^(.*)_\d{14}(\.[^.]+)$"
+                                              )
+                                          },
+                                          If(
+                                              IsBlank(m.FullMatch),
+                                              ThisItem.'Nom de fichier avec l’extension',
+                                              First(m.SubMatches).Value &
+                                              Last(m.SubMatches).Value
+                                          )
+                                      )
                                     VerticalAlign: =VerticalAlign.Top
                                     Width: =Parent.TemplateWidth - Self.X - 10
                                     X: =72

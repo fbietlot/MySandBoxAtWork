@@ -1,4 +1,4 @@
-_AppVersion = "0.12.10";;
+_AppVersion = "0.13.03";;
 _AppName = "Promotion Encadrement";;
 _AppLink = vvAppConfig.AppUrl;;
 
@@ -673,7 +673,8 @@ _StatusKey = {
     CandidAppelEnCours: "CandidAppelEnCours";
     CandidAnalyse:      "CandidAnalyse";
     CandidDFA:          "CandidDFA";
-    CandidPVEnCours:    "CandidPVEnCours";
+    CandidPVEnCours_AvecRecours:    "CandidPVEnCours_AvecRecours";
+    CandidPVEnCours_SansRecours:    "CandidPVEnCours_SansRecours";
     CandidPVTermines:   "CandidPVTermines";
 
     //"Processus de promotion"
@@ -780,10 +781,10 @@ AddColumns(
             StatusKey:          _StatusKey.DemandeNew;
             StatutDetail:       _StatusDetail.DemandeNew;
             StatutGeneral:      _StatusGeneral.Demande;
-            ProcessStepKey:  _ProcessStepKey.InitDemande;
+            ProcessStepKey:     _ProcessStepKey.InitDemande;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     false;
-            LinkedTypeDemande:  [];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [
                                     _DocumentCategory.DemandeCODI;
                                     _DocumentCategory.Criteres;
@@ -803,10 +804,10 @@ AddColumns(
             StatusKey:          _StatusKey.DemandeBrouillon;
             StatutDetail:       _StatusDetail.DemandeBrouillon;
             StatutGeneral:      _StatusGeneral.Demande;
-            ProcessStepKey:  _ProcessStepKey.InitDemande;
+            ProcessStepKey:     _ProcessStepKey.InitDemande;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
-            LinkedTypeDemande:  [];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [
                                     _DocumentCategory.DemandeCODI;
                                     _DocumentCategory.Criteres;
@@ -831,10 +832,10 @@ AddColumns(
             StatusKey:          _StatusKey.DemandeBrouillonFin;
             StatutDetail:       _StatusDetail.DemandeBrouillonFin;
             StatutGeneral:      _StatusGeneral.Demande;
-            ProcessStepKey:  _ProcessStepKey.InitDemande;
+            ProcessStepKey:     _ProcessStepKey.InitDemande;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
-            LinkedTypeDemande:  [];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [
                                     _DocumentCategory.DemandeCODI;
                                     _DocumentCategory.Criteres;
@@ -859,10 +860,10 @@ AddColumns(
             StatusKey:          _StatusKey.DemandeEnCours;
             StatutDetail:       _StatusDetail.DemandeEnCours;
             StatutGeneral:      _StatusGeneral.Demande;
-            ProcessStepKey:  _ProcessStepKey.EnvoiDAC;
+            ProcessStepKey:     _ProcessStepKey.ValidationDAC;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
-            LinkedTypeDemande:  [];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [];
             Actions:            [
                                     _ActionOnForm.DACRefuse;
@@ -888,7 +889,7 @@ AddColumns(
             ProcessStepKey:     _ProcessStepKey.InitDemande;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
-            LinkedTypeDemande:  [];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [
                                     _DocumentCategory.DemandeCODI;
                                     _DocumentCategory.Criteres;
@@ -915,7 +916,7 @@ AddColumns(
             StatusKey:          _StatusKey.DACValidee_WithLot;
             StatutDetail:       _StatusDetail.DACValidee;
             StatutGeneral:      _StatusGeneral.DACValidation;
-            ProcessStepKey:     _ProcessStepKey.ValidationDAC;
+            ProcessStepKey:     _ProcessStepKey.ConstitutionLot;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [   
@@ -933,7 +934,7 @@ AddColumns(
             StatusKey:          _StatusKey.DACValidee_WithAppel;
             StatutDetail:       _StatusDetail.DACValidee;
             StatutGeneral:      _StatusGeneral.DACValidation;
-            ProcessStepKey:     _ProcessStepKey.ValidationDAC;
+            ProcessStepKey:     _ProcessStepKey.CandAppel;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -951,8 +952,7 @@ AddColumns(
             StatusKey:          _StatusKey.DACDVEnPrevision;
             StatutDetail:       _StatusDetail.DACDVEnPrevision;
             StatutGeneral:      _StatusGeneral.DACValidation;
-            //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
-            ProcessStepKey:  _ProcessStepKey.ConstitutionLot;
+            ProcessStepKey:     _ProcessStepKey.EnvoiNoteGW;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -972,8 +972,7 @@ AddColumns(
             StatusKey:          _StatusKey.DirReaffConsult;
             StatutDetail:       _StatusDetail.DirReaffConsult;
             StatutGeneral:      _StatusGeneral.DirReaff;
-            //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
-            ProcessStepKey:  _ProcessStepKey.ConstitutionLot;
+            ProcessStepKey:     _ProcessStepKey.DirReaffReception;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -984,7 +983,7 @@ AddColumns(
             Controls:   {
                             FormGeneralInfo :               { Visible : true ; Mode : FormMode.View };
                             FormNextStep :                  { Visible : true ; Mode : FormMode.View };
-                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : FormMode.View }
+                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : DisplayMode.View }
             };
             StatusDetail_SortOrder: 10
         };
@@ -993,8 +992,7 @@ AddColumns(
             StatusKey:          _StatusKey.DirReaffFinConsult;
             StatutDetail:       _StatusDetail.DirReaffFinConsult;
             StatutGeneral:      _StatusGeneral.DirReaff;
-            //ProcessStep:        _ProcessStepDetail.ConstitutionLot;
-            ProcessStepKey:  _ProcessStepKey.ConstitutionLot;
+            ProcessStepKey:     _ProcessStepKey.DirReaffReception;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1005,7 +1003,7 @@ AddColumns(
             Controls:   {
                             FormGeneralInfo :               { Visible : true ; Mode : FormMode.View };
                             FormNextStep :                  { Visible : true ; Mode : FormMode.View };
-                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : FormMode.View }
+                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : DisplayMode.View }
             };
             StatusDetail_SortOrder: 15
         };
@@ -1013,8 +1011,7 @@ AddColumns(
             StatusKey:          _StatusKey.DirReaffPasCandid;
             StatutDetail:       _StatusDetail.DirReaffPasCandid;
             StatutGeneral:      _StatusGeneral.DirReaff;
-            //ProcessStep:        _ProcessStepDetail.DirReaffReception;
-            ProcessStepKey:  _ProcessStepKey.DirReaffReception;
+            ProcessStepKey:     _ProcessStepKey.EnvoiNoteGW;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1025,7 +1022,7 @@ AddColumns(
             Controls:   {
                             FormGeneralInfo :               { Visible : true ; Mode : FormMode.View };
                             FormNextStep :                  { Visible : true ; Mode : FormMode.View };
-                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : FormMode.View }
+                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : DisplayMode.View }
             };
             StatusDetail_SortOrder: 20
         };
@@ -1033,10 +1030,9 @@ AddColumns(
             StatusKey:          _StatusKey.DirReaffAuditCODI;
             StatutDetail:       _StatusDetail.DirReaffAuditCODI;
             StatutGeneral:      _StatusGeneral.DirReaff;
-            //ProcessStep:        _ProcessStepDetail.DirReaffReception;
-            ProcessStepKey:  _ProcessStepKey.DirReaffReception;
+            ProcessStepKey:     _ProcessStepKey.DirReaffAuditCODI;
             ActionOwner:        _Acteur.DFA;
-            ActionRequired:     false;
+            ActionRequired:     true;
             LinkedTypeDemande:  [
                                     _TypeDemande.DemandeDV
                                 ];
@@ -1050,9 +1046,10 @@ AddColumns(
                                     _ActionOnForm.DirCandNonRet
                                 ];
             Controls:   {
-                            FormGeneralInfo :               { Visible : true ; Mode : FormMode.View };
-                            FormNextStep :                  { Visible : true ; Mode : FormMode.View };
-                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : FormMode.View }
+                            FormGeneralInfo :               {Visible : true; Mode: FormMode.View};
+                            FormNextStep :                  {Visible : true; Mode: FormMode.Edit};
+                            crdDirReaffFinConsultation_F:   {Visible : true; Mode: DisplayMode.View};
+                            crdDirReaffCandidatRetenu_F:    {Visible : true; Mode: DisplayMode.Edit}
             };
             ButtonText: {
                 Edit: "Résultat audition"
@@ -1063,8 +1060,7 @@ AddColumns(
             StatusKey:          _StatusKey.DirReaffPasReaff;
             StatutDetail:       _StatusDetail.DirReaffPasReaff;
             StatutGeneral:      _StatusGeneral.DirReaff;
-            //ProcessStep:        _ProcessStepDetail.DirReaffAuditCODI;
-            ProcessStepKey:  _ProcessStepKey.DirReaffAuditCODI;
+            ProcessStepKey:     _ProcessStepKey.EnvoiNoteGW;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1075,7 +1071,7 @@ AddColumns(
             Controls:   {
                             FormGeneralInfo :               { Visible : true ; Mode : FormMode.View };
                             FormNextStep :                  { Visible : true ; Mode : FormMode.View };
-                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : FormMode.View }
+                            crdDirReaffFinConsultation_F :  { Visible : true ; Mode : DisplayMode.View }
             };
             StatusDetail_SortOrder: 40
         };
@@ -1085,8 +1081,7 @@ AddColumns(
             StatusKey:          _StatusKey.NGWCOSTRADemande;
             StatutDetail:       _StatusDetail.NGWCOSTRADemande;
             StatutGeneral:      _StatusGeneral.NGWProcessusNGW_DV;
-            //ProcessStep:        _ProcessStepDetail.EnvoiNoteGW;
-            ProcessStepKey:  _ProcessStepKey.EnvoiNoteGW;
+            ProcessStepKey:     _ProcessStepKey.NoteDecisionCOSTRA;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1112,8 +1107,7 @@ AddColumns(
             StatusKey:          _StatusKey.NGWAuGW;
             StatutDetail:       _StatusDetail.NGWAuGW;
             StatutGeneral:      _StatusGeneral.NGWProcessusNGW_DV;
-            //ProcessStep:        _ProcessStepDetail.NoteDecisionCOSTRA;
-            ProcessStepKey:  _ProcessStepKey.NoteDecisionCOSTRA;
+            ProcessStepKey:     _ProcessStepKey.NoteDecisionGW;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1136,8 +1130,7 @@ AddColumns(
             StatusKey:          _StatusKey.NGWGWDVValidee;
             StatutDetail:       _StatusDetail.NGWGWDVValidee;
             StatutGeneral:      _StatusGeneral.NGWProcessusNGW_DV;
-            //ProcessStep:        _ProcessStepDetail.NoteDecisionGW;
-            ProcessStepKey:  _ProcessStepKey.NoteDecisionGW;
+            ProcessStepKey:     _ProcessStepKey.CandAppel;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
             LinkedTypeDemande:  [
@@ -1159,11 +1152,10 @@ AddColumns(
             StatusKey:          _StatusKey.CandidAppelEnCours;
             StatutDetail:       _StatusDetail.CandidAppelEnCours;
             StatutGeneral:      _StatusGeneral.Candidatures;
-            //ProcessStep:        _ProcessStepDetail.CandAppel;
-            ProcessStepKey:  _ProcessStepKey.CandAppel;
+            ProcessStepKey:     _ProcessStepKey.CandAppel;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
-            LinkedTypeDemande:  [];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [];
             Actions:            [
                                     // Le changement de statut est automatique via Power Automate
@@ -1182,13 +1174,10 @@ AddColumns(
             StatusKey:          _StatusKey.CandidAnalyse;
             StatutDetail:       _StatusDetail.CandidAnalyse;
             StatutGeneral:      _StatusGeneral.Candidatures;
-            //ProcessStep:        _ProcessStepDetail.CandAnalyse;
-            ProcessStepKey:  _ProcessStepKey.CandAnalyse;
+            ProcessStepKey:     _ProcessStepKey.CandAnalyse;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [];
             Actions:            [
                                     _ActionOnList.CandSendDFA
@@ -1204,13 +1193,10 @@ AddColumns(
             StatusKey:          _StatusKey.CandidDFA;
             StatutDetail:       _StatusDetail.CandidDFA;
             StatutGeneral:      _StatusGeneral.Candidatures;
-            //ProcessStep:        _ProcessStepDetail.CandEnvoiDFA;
-            ProcessStepKey:  _ProcessStepKey.CandEnvoiDFA;
+            ProcessStepKey:     _ProcessStepKey.CandFixAuditions;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [];
             Actions:            [
                                     _ActionOnList.CandAudit
@@ -1223,16 +1209,15 @@ AddColumns(
             StatusDetail_SortOrder: 30
         };
         {
-            StatusKey:          _StatusKey.CandidPVEnCours;
+            StatusKey:          _StatusKey.CandidPVEnCours_AvecRecours;
             StatutDetail:       _StatusDetail.CandidPVEnCours;
             StatutGeneral:      _StatusGeneral.Candidatures;
-            //ProcessStep:        _ProcessStepDetail.CandFixAuditions;
-            ProcessStepKey:  _ProcessStepKey.CandFixAuditions;
+            ProcessStepKey:     _ProcessStepKey.CandDecisionCODI;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
             LinkedTypeDemande:  [
                                     _TypeDemande.DemandeDV
-                                ];
+            ]; 
             DocumentCategory:   [
                                     _DocumentCategory.PVDefinitif;
                                     _DocumentCategory.PVProvisoire
@@ -1240,7 +1225,8 @@ AddColumns(
             Actions:            [
                                     _ActionOnList.Modifier;
                                     _ActionOnForm.Save;
-                                    _ActionOnList.CODIDecision;
+                                    _ActionOnForm.AddDoc;
+                                    //_ActionOnList.CODIDecision;
                                     _ActionOnForm.CODICandSelect
                                 ];
             Controls:   {
@@ -1249,19 +1235,50 @@ AddColumns(
                             crdDateCandAudition_F:      { Visible: true ; Mode: DisplayMode.Edit };
                             crdCODICandRetenu_F:        { Visible: true ; Mode: DisplayMode.Edit }
             };
+            ButtonText: {
+                Edit: "Décision CODI"
+            };
+            StatusDetail_SortOrder: 40
+        };
+        {
+            StatusKey:          _StatusKey.CandidPVEnCours_SansRecours;
+            StatutDetail:       _StatusDetail.CandidPVEnCours;
+            StatutGeneral:      _StatusGeneral.Candidatures;
+            ProcessStepKey:     _ProcessStepKey.CandDecisionCODI;
+            ActionOwner:        _Acteur.DFA;
+            ActionRequired:     true;
+            LinkedTypeDemande:  [
+                                _TypeDemande.DemandeFF
+            ]; 
+            DocumentCategory:   [
+                                    _DocumentCategory.PVDefinitif;
+                                ];
+            Actions:            [
+                                    _ActionOnList.Modifier;
+                                    _ActionOnForm.Save;
+                                    _ActionOnForm.AddDoc;
+                                    //_ActionOnList.CODIDecision;
+                                    _ActionOnForm.CODICandSelect
+                                ];
+            Controls:   {
+                            FormGeneralInfo :           { Visible: true ; Mode: FormMode.View };
+                            FormNextStep :              { Visible: true ; Mode: FormMode.Edit };
+                            crdDateCandAudition_F:      { Visible: true ; Mode: DisplayMode.Edit };
+                            crdCODICandRetenu_F:        { Visible: true ; Mode: DisplayMode.Edit }
+            };
+            ButtonText: {
+                Edit: "Décision CODI"
+            };
             StatusDetail_SortOrder: 40
         };
         {
             StatusKey:          _StatusKey.CandidPVTermines;
             StatutDetail:       _StatusDetail.CandidPVTermines;
             StatutGeneral:      _StatusGeneral.Candidatures;
-            //ProcessStep:        _ProcessStepDetail.CandDecisionCODI;
-            ProcessStepKey:  _ProcessStepKey.CandDecisionCODI;
+            ProcessStepKey:     _ProcessStepKey.ArreteRedaction;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     true;
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [];
             Actions:            [
                                     _ActionOnList.PromRedaction
@@ -1280,12 +1297,10 @@ AddColumns(
             StatusKey:          _StatusKey.PromRedaction;
             StatutDetail:       _StatusDetail.PromRedaction;
             StatutGeneral:      _StatusGeneral.Promotion;
-            ProcessStepKey:  _ProcessStepKey.ArreteRedaction;
+            ProcessStepKey:     _ProcessStepKey.ArreteEnvoiGWDG;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [];
             Actions:            [
                                     _ActionOnList.PromEnvoi
@@ -1301,12 +1316,10 @@ AddColumns(
             StatusKey:          _StatusKey.PromAuGWDG;
             StatutDetail:       _StatusDetail.PromAuGWDG;
             StatutGeneral:      _StatusGeneral.Promotion;
-            ProcessStepKey:     _ProcessStepKey.ArreteEnvoiGWDG;
+            ProcessStepKey:     _ProcessStepKey.ArreteDecision;
             ActionOwner:        _Acteur.DAC;
             ActionRequired:     false;
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [
                                     _DocumentCategory.ArreteDesign;
                                     _DocumentCategory.ArreteRecept;
@@ -1333,13 +1346,10 @@ AddColumns(
             StatusKey:          _StatusKey.PromSignes;
             StatutDetail:       _StatusDetail.PromSignes;
             StatutGeneral:      _StatusGeneral.Cloture;
-            //ProcessStep:        _ProcessStepDetail.ArreteDecision;
             ProcessStepKey:  _ProcessStepKey.ArreteDecision;
             ActionOwner:        _Acteur.DFA;
             ActionRequired:     true;
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             Controls:   {
                             FormGeneralInfo :   { Visible: true ; Mode: FormMode.View };
                             FormNextStep :      { Visible: true ; Mode: FormMode.View }
@@ -1352,7 +1362,6 @@ AddColumns(
             StatusKey:          _StatusKey.DirReaffCODI;
             StatutDetail:       _StatusDetail.DirReaffCODI;
             StatutGeneral:      _StatusGeneral.Cloture;
-            //ProcessStep:        _ProcessStepDetail.ClotDirReaffCODI;
             ProcessStepKey:  _ProcessStepKey.ClotDirReaffCODI;
             ActionOwner:        Blank();
             ActionRequired:     false;
@@ -1364,8 +1373,9 @@ AddColumns(
                                     _ActionOnList.Consulter
                                 ];
             Controls:   {
-                            FormGeneralInfo :   { Visible : true ; Mode : FormMode.View };
-                            FormNextStep :      { Visible : true ; Mode : FormMode.View }
+                            FormGeneralInfo:            {Visible: true; Mode: FormMode.View};
+                            FormNextStep:               {Visible: true; Mode: FormMode.View};
+                            crdDirReaffCandidatRetenu_F:{Visible: true; Mode: DisplayMode.Edit}
             };
             ButtonText: {
                 Edit: "N/A";
@@ -1377,8 +1387,7 @@ AddColumns(
             StatusKey:          _StatusKey.COSTRARefusee;
             StatutDetail:       _StatusDetail.COSTRARefusee;
             StatutGeneral:      _StatusGeneral.Cloture;
-            //ProcessStep:        _ProcessStepDetail.Cloture;
-            ProcessStepKey:  _ProcessStepKey.ClotCostraRefusee;
+            ProcessStepKey:     _ProcessStepKey.ClotCostraRefusee;
             ActionOwner:        Blank();
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1403,8 +1412,7 @@ AddColumns(
             StatusKey:          _StatusKey.GWRefusee;
             StatutDetail:       _StatusDetail.GWRefusee;
             StatutGeneral:      _StatusGeneral.Cloture;
-            //ProcessStep:        _ProcessStepDetail.Cloture;
-            ProcessStepKey:  _ProcessStepKey.ClotGWRefusee;
+            ProcessStepKey:     _ProcessStepKey.ClotGWRefusee;
             ActionOwner:        Blank();
             ActionRequired:     false;
             LinkedTypeDemande:  [
@@ -1429,24 +1437,18 @@ AddColumns(
             StatusKey:          _StatusKey.PostePourvu;
             StatutDetail:       _StatusDetail.PostePourvu;
             StatutGeneral:      _StatusGeneral.Cloture;
-            //ProcessStep:        _ProcessStepDetail.Cloture;
-            ProcessStepKey:  _ProcessStepKey.ClotPostePourvu;
+            ProcessStepKey:     _ProcessStepKey.ClotPostePourvu;
             ActionOwner:        Blank();
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             StatusDetail_SortOrder: Blank()
         };
         {
             StatusKey:          _StatusKey.PosteNonPourvu;
             StatutDetail:       _StatusDetail.PosteNonPourvu;
             StatutGeneral:      _StatusGeneral.Cloture;
-            //ProcessStep:        _ProcessStepDetail.Cloture;
             ProcessStepKey:  _ProcessStepKey.ClotPosteNonPourvu;
             ActionOwner:        Blank();
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             StatusDetail_SortOrder: Blank()
         };
         {
@@ -1456,9 +1458,7 @@ AddColumns(
             //ProcessStep:        _ProcessStepDetail.Cloture;
             ProcessStepKey:  _ProcessStepKey.ClotPromRefuseeGW;
             ActionOwner:        Blank();
-            LinkedTypeDemande:  [
-                                    _TypeDemande.DemandeDV
-                                ];
+            LinkedTypeDemande:  []; //Vide --> Valide pour tous les type de demandes
             DocumentCategory:   [];
             Actions:            [
                                     _ActionOnList.Consulter
@@ -1680,7 +1680,7 @@ _tblDemandesFieldCatalog = [
 
 
 //Purpose: Indicates whether multiple 'Deamandes' are currently selected in the main table to drive UI behavior and available bulk actions.
-_MuliSelectOnDemandes = CountRows(dlstDemandes_M.SelectedItems) > 1 ;;
+_MultiSelectOnDemandes = CountRows(dlstDemandes_M.SelectedItems) > 1 ;;
 _SingleSelectOnDemandes = CountRows(dlstDemandes_M.SelectedItems) = 1 ;;
 _NoSelectOnDemandes = CountRows(dlstDemandes_M.SelectedItems) = 0 ;;
 
@@ -1726,9 +1726,9 @@ _txtMessage = {
     NoRecipient : "Aucune liste de diffusion DFA n'est configurée pour ce SPW. Le changement est enregistré mais aucune notification n'a pu être envoyée.";
     EmailSubjectPrefix : If(vvAppConfig.ProdEnvironnement; ""; "[TEST] [" & _AppName & "] ");
     EmailFooter : 
-        "<br><br>👉 <a href='" & _AppLink & "'>" &
-        "Accéder à " & _AppName & " pour consulter la demande</a><br><br>" &
-        "Ceci est une notification automatique."
+        "<p>👉 <a href='" & _AppLink & "'>" &
+        "Accéder à " & _AppName & " pour consulter la demande</a></p>" &
+        "<p><i>Ceci est une notification automatique.</i></p>"
 };;
 
 _Emoji = {

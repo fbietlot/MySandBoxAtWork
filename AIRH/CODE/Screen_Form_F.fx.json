@@ -54,7 +54,7 @@ Screens:
         );
 
         //#3  SET UP SubwayNAV menu
-        Reset(cbxSubNavRang_F);Reset(cbxSubNavStep_F);Reset(numSubNavMainStep_F);Reset(numSubNavStep_F);
+        Reset(cbxSubNavRang_F);Reset(cbxSubNavStep_F);Reset(numSubNavMainStep_F_V2);Reset(numSubNavStep_F_V2);
 
 
 
@@ -112,24 +112,10 @@ Screens:
                       Properties:
                         DefaultSelectedItems: =vcStatutConfig
                         ItemDisplayText: '="(" & ThisItem.StatutGeneral & ")  " & ThisItem.StatutDetail '
-                        Items: =_StatutConfigTable
+                        Items: =Filter(_StatutConfigTable,vcDemande.'Type de demande'.Value in ThisRecord.LinkedTypeDemande Or IsEmpty(ThisRecord.LinkedTypeDemande)) // _StatutConfigTable
                         SelectMultiple: =false
                         Size: =8
                         X: =422
-                        Y: =40
-                  - numSubNavStep_F:
-                      Control: ModernNumberInput@1.1.2
-                      Properties:
-                        Default: =cbxSubNavStep_F.Selected.ProcessStep.StepOrder
-                        Width: =91
-                        X: =115
-                        Y: =40
-                  - numSubNavMainStep_F:
-                      Control: ModernNumberInput@1.1.2
-                      Properties:
-                        Default: =Value( Left(cbxSubNavStep_F.Selected.ProcessStep.StepOrder,2))
-                        Width: =91
-                        X: =57
                         Y: =40
                   - cbxSubNavRang_F:
                       Control: ModernCombobox@1.1.2
@@ -201,7 +187,7 @@ Screens:
                                     }
                                 }
                               Fill: =
-                              ProcessSteps: "= With( {\n    // Regroupe les étapes détaillées par étape principale. \n    MyMainSteps :\n        AddColumns( \n            GroupBy(\n                _ProcessStepConfigTable,\n                MainStep,\n                ProcessSteps\n            ),\n            MainStepOrder, \n                First(ThisRecord.ProcessSteps).MainStepOrder       \n        ),\n    // Position actuelle de la demande dans le processus.\n    MyDemandeMainStepOrder : \n            numSubNavMainStep_F_V2.Value,\n    MyDemandeStepOrder : \n            numSubNavStep_F_V2.Value,\n\n    // Rang utilisé pour déterminer si l'étape de réaffectation doit être affichée comme ignorée.\n    MyDemandeRang : \n            cbxSubNavRang_F.Selected.Value\n    },\n\n    Ungroup(\n        ForAll(MyMainSteps  As MyMainStep,\n            Table(\n                {\n                    ProcessStepOrder:   MyMainStep.MainStepOrder,\n                    ProcessStepText:    MyMainStep.MainStep,\n                    ProcessStepState : \n                              Switch(\n                                true,\n\n                                // L'étape de réaffectation ne concerne\n                                // que les demandes de rang A4.\n                                MyMainStep.MainStep = _ProcessStepMain.DirReaff\n                                    && (!IsBlank(MyDemandeRang) && MyDemandeRang <> \"A4\"),\n                                    cmpProcessTimeline_F.ProcessStepStates.Skipped,\n\n                                MyMainStep.MainStepOrder = MyDemandeMainStepOrder,\n                                    cmpProcessTimeline_F.ProcessStepStates.Current,\n\n                                MyMainStep.MainStepOrder < MyDemandeMainStepOrder,\n                                    cmpProcessTimeline_F.ProcessStepStates.Completed,\n\n                                cmpProcessTimeline_F.ProcessStepStates.NotStarted\n                            )\n\n\n                },\n                ForAll(Filter(_ProcessStepConfigTable,MainStep = MyMainStep.MainStep) As MyStep, // Only Steps of the current Main step\n                    { \n                        ProcessStepOrder:        MyStep.StepOrder , \n                        ProcessStepText:      MyStep.Text,\n                        ProcessStepState : \n                                Switch(\n                                    true,\n\n                                    MyStep.StepOrder = MyDemandeStepOrder,\n                                        cmpProcessTimeline_F.ProcessStepStates.Current,\n\n                                    MyStep.StepOrder < MyDemandeStepOrder,\n                                        cmpProcessTimeline_F.ProcessStepStates.Completed,\n\n                                    cmpProcessTimeline_F.ProcessStepStates.NotStarted\n                                ),\n                        ParentProcessStepOrder : MyMainStep.MainStepOrder\n                        \n                    }\n                )\n            )\n    ),\n    Value\n    )\n)\n\n            "
+                              ProcessSteps: "=With({ \n    MyStatusOfTypeDemande : Filter(_StatutConfigTable,vcDemande.'Type de demande'.Value in ThisRecord.LinkedTypeDemande Or IsEmpty(ThisRecord.LinkedTypeDemande)) ,\n    MyProcessStepOfTypeDemande : Distinct( Filter(_StatutConfigTable,vcDemande.'Type de demande'.Value in ThisRecord.LinkedTypeDemande Or IsEmpty(ThisRecord.LinkedTypeDemande)),ProcessStepKey),\n    MyProcessStepConfigTable : Filter(_ProcessStepConfigTable,ThisRecord.Key in Distinct( Filter(_StatutConfigTable,vcDemande.'Type de demande'.Value in ThisRecord.LinkedTypeDemande Or IsEmpty(ThisRecord.LinkedTypeDemande)),ProcessStepKey))\n    },\n    With( {\n\n    // Regroupe les étapes détaillées par étape principale. \n    MyMainSteps :\n        AddColumns( \n            GroupBy(\n                 MyProcessStepConfigTable, //_ProcessStepConfigTable;\n                MainStep,\n                ProcessSteps\n            ),\n            MainStepOrder, \n                First(ThisRecord.ProcessSteps).MainStepOrder       \n        ),\n    // Position actuelle de la demande dans le processus.\n    MyDemandeMainStepOrder : \n            numSubNavMainStep_F_V2.Value,\n    MyDemandeStepOrder : \n            numSubNavStep_F_V2.Value,\n\n    // Rang utilisé pour déterminer si l'étape de réaffectation doit être affichée comme ignorée.\n    MyDemandeRang : \n            cbxSubNavRang_F.Selected.Value\n    },\n\n    Ungroup(\n        ForAll(MyMainSteps  As MyMainStep,\n            Table(\n                {\n                    ProcessStepOrder:   MyMainStep.MainStepOrder,\n                    ProcessStepText:    MyMainStep.MainStep,\n                    ProcessStepState : \n                              Switch(\n                                true,\n\n                                // L'étape de réaffectation ne concerne\n                                // que les demandes de rang A4.\n                                MyMainStep.MainStep = _ProcessStepMain.DirReaff\n                                    && (!IsBlank(MyDemandeRang) && MyDemandeRang <> \"A4\"),\n                                    cmpProcessTimeline_F.ProcessStepStates.Skipped,\n\n                                MyMainStep.MainStepOrder = MyDemandeMainStepOrder,\n                                    cmpProcessTimeline_F.ProcessStepStates.Current,\n\n                                MyMainStep.MainStepOrder < MyDemandeMainStepOrder,\n                                    cmpProcessTimeline_F.ProcessStepStates.Completed,\n\n                                cmpProcessTimeline_F.ProcessStepStates.NotStarted\n                            )\n\n\n                },\n                ForAll(Filter(_ProcessStepConfigTable,MainStep = MyMainStep.MainStep) As MyStep, // Only Steps of the current Main step\n                    { \n                        ProcessStepOrder:     MyStep.StepOrder , \n                        ProcessStepText:      MyStep.Text,\n                        ProcessStepState : \n                                Switch(\n                                    true,\n\n                                    MyStep.StepOrder = MyDemandeStepOrder,\n                                        cmpProcessTimeline_F.ProcessStepStates.Current,\n\n                                    MyStep.StepOrder < MyDemandeStepOrder,\n                                        cmpProcessTimeline_F.ProcessStepStates.Completed,\n\n                                    cmpProcessTimeline_F.ProcessStepStates.NotStarted\n                                ),\n                        ParentProcessStepOrder : MyMainStep.MainStepOrder\n                        \n                    }\n                )\n            )\n    ),\n    Value\n    )\n)\n\n)"
                               ProcessStoppedAtStepOrder: =cbxSubNavStep_F.Selected.ProcessStep.ClosedFromStepOrder
                               Width: =200
                   - galStatusHistory:
@@ -2839,6 +2825,191 @@ Screens:
                                                       Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
                                                       Width: =30
                                                       Y: =DataCardKey4.Y
+                                          - crdDirReaffCandidatRetenu_F:
+                                              Control: TypedDataCard@1.0.7
+                                              Variant: ComboBoxEdit
+                                              Properties:
+                                                DataField: ="DirReaffCandidatRetenu"
+                                                Default: |-
+                                                  =If (
+                                                      IsBlank(ThisItem.DirReaffCandidatRetenu),
+                                                      Blank(),
+                                                      {
+                                                          DisplayName: ThisItem.DirReaffCandidatRetenu.DisplayName,
+                                                          Mail:       ThisItem.DirReaffCandidatRetenu.Email
+                                                      }
+                                                  )
+                                                DisplayMode: |-
+                                                  =// Mode :
+                                                  // - si le formulaire parent est en consultation (FormMode.View) : cette configuration est ignorée et le champ reste non modifiable.
+                                                  // - modifiable uniquement pour les statuts qui l'autorisent.
+                                                  // - lecture seule pour tous les autres statuts.
+                                                  // - lecture seule par défaut.
+                                                  Coalesce(
+                                                      vcStatutConfig.Controls.crdDirReaffCandidatRetenu_F.Mode,
+                                                      DisplayMode.View
+                                                  )
+                                                DisplayName: ="Candidat reaffecté"
+                                                Height: =crdCODICandRetenu_F.Height
+                                                Required: =false
+                                                Update: |-
+                                                  =If(
+                                                      Self.Visible && !IsBlank(drpDirReaffCandidatRetenu_F.Selected),
+                                                      {
+                                                          Claims: Concatenate(
+                                                              "i:0#.f|membership|",
+                                                              drpDirReaffCandidatRetenu_F.Selected.Mail// Person email
+                                                          ),
+                                                          Department: "",
+                                                          DisplayName: drpDirReaffCandidatRetenu_F.Selected.DisplayName,
+                                                          Email: drpDirReaffCandidatRetenu_F.Selected.Mail, // Person email
+                                                          JobTitle: "",
+                                                          Picture: ""
+                                                      },
+                                                      Blank()
+                                                  )
+                                                Visible: |-
+                                                  =// Visible :
+                                                  //  - dès qu'une valeur existe afin de conserver l'historique du processus.
+                                                  //  - pour les statuts qui déclarent explicitement ce champ comme visible.
+                                                  //  - en debug (et pour faciliter la mise en page du form)
+                                                  Or(
+                                                      !IsBlank(Self.Default),
+                                                      Coalesce(vcStatutConfig.Controls.crdDirReaffCandidatRetenu_F.Visible, false),
+                                                      vvDebug
+                                                  )
+                                                Width: =Parent.Width
+                                                X: =0
+                                                Y: =21
+                                              Children:
+                                                - DataCardKey32_2:
+                                                    Control: ModernText@1.0.0
+                                                    Properties:
+                                                      AutoHeight: =true
+                                                      FontWeight: =FontWeight.Semibold
+                                                      Height: =txtTypeDemandeLabel_F.Height
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Size: =txtTypeDemandeLabel_F.Size
+                                                      Text: =Parent.DisplayName & " :"
+                                                      VerticalAlign: =txtTypeDemandeLabel_F.VerticalAlign
+                                                      Width: =Parent.Width - 10
+                                                      X: =txtTypeDemandeLabel_F.X
+                                                      Y: =txtTypeDemandeLabel_F.Y
+                                                - ErrorMessage32_2:
+                                                    Control: ModernText@1.0.0
+                                                    Properties:
+                                                      Height: =30
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Size: =14
+                                                      Text: =Parent.Error
+                                                      VerticalAlign: =VerticalAlign.Top
+                                                      Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
+                                                      Width: =Parent.Width - 48
+                                                      X: =24
+                                                      Y: =drpDirReaffCandidatRetenu_F.Y + drpDirReaffCandidatRetenu_F.Height
+                                                - StarVisible32_2:
+                                                    Control: ModernText@1.0.0
+                                                    Properties:
+                                                      Align: =Align.Center
+                                                      Height: =20
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Size: =14
+                                                      Text: ="*"
+                                                      VerticalAlign: =VerticalAlign.Top
+                                                      Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                                                      Width: =30
+                                                      Y: =DataCardKey32_2.Y
+                                                - drpDirReaffCandidatRetenu_F:
+                                                    Control: ModernCombobox@1.1.2
+                                                    Properties:
+                                                      AccessibleLabel: =Parent.DisplayName
+                                                      Appearance: =Appearance.FilledLighter
+                                                      DefaultSelectedItems: =Parent.Default
+                                                      DelayOutput: =true
+                                                      DisplayMode: =Parent.DisplayMode
+                                                      FontWeight: =""
+                                                      InputTextPlaceholder: |-
+                                                        ="👤Rechercher un agent"
+                                                      ItemDisplayText: =ThisItem.DisplayName & " (" & Text(ThisItem.MailNickname) & ")"
+                                                      Items: |-
+                                                        =With(
+                                                            { MySearch: Self.SearchText },
+                                                            'Utilisateursd’Office365'.SearchUserV2(
+                                                                {
+                                                                    searchTerm: MySearch,
+                                                                    isSearchTermRequired: true,
+                                                                    top: 50
+                                                                }
+                                                            ).value
+                                                        )
+                                                        //'Utilisateursd’Office365'.SearchUserV2({searchTerm: drpDirReaffCandidatRetenu_F.SearchText; isSearchTermRequired: false; top: 50}).value
+                                                      Required: =Parent.Required
+                                                      SelectMultiple: =false
+                                                      Size: =inpNumEmploi_F.Size
+                                                      ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
+                                                      Width: =198
+                                                      X: =24
+                                                      Y: =36
+                                                - DataCardValue21_2:
+                                                    Control: ModernTextInput@1.1.2
+                                                    Properties:
+                                                      AccessibleLabel: =Parent.DisplayName
+                                                      Align: =Align.Right
+                                                      Default: =drpDirReaffCandidatRetenu_F.Selected.MailNickname
+                                                      DisplayMode: =inpCodeES_F.DisplayMode
+                                                      FontWeight: =""
+                                                      Height: '=26  '
+                                                      Italic: =true
+                                                      MaxLength: =-1
+                                                      Placeholder: =""
+                                                      Required: =Parent.Required
+                                                      Size: =inpNumEmploi_F.Size
+                                                      TriggerOutput: =TriggerOutput.FocusOut
+                                                      ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
+                                                      Width: =100
+                                                      X: =122
+                                                      Y: =drpDirReaffCandidatRetenu_F.Y + drpCODICandRetenu_F.Height
+                                                - DataCardKey28_2:
+                                                    Control: ModernText@1.0.0
+                                                    Properties:
+                                                      Height: '=26  '
+                                                      Italic: =true
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Size: =txtTypeDemandeLabel_F.Size
+                                                      Text: ="Numéro Ulis:"
+                                                      VerticalAlign: =txtTypeDemandeLabel_F.VerticalAlign
+                                                      Width: =86
+                                                      Wrap: =false
+                                                      X: =80
+                                                      Y: =drpDirReaffCandidatRetenu_F.Y + drpCODICandRetenu_F.Height
                                           - crdCommentValidCOSTRA_F:
                                               Control: TypedDataCard@1.0.7
                                               Variant: TextualMultilineEdit
@@ -3266,21 +3437,30 @@ Screens:
                                                                   Mail:       ThisItem.CODICandidatRetenu.Email
                                                               }
                                                           )
-                                                DisplayMode: "=// Mode :\r\n// - si le formulaire parent est en consultation (FormMode.View) : cette configuration est ignorée et le champ reste non modifiable.\r\n// - modifiable uniquement pour les statuts qui l'autorisent.\r\n// - lecture seule pour tous les autres statuts.\r\n// - lecture seule par défaut.\r\nCoalesce(\r\n    vcStatutConfig.Controls.crdCODICandRetenu_F.Mode,\r\n    DisplayMode.View\r\n) "
+                                                DisplayMode: |-
+                                                  =// Mode :
+                                                  // - si le formulaire parent est en consultation (FormMode.View) : cette configuration est ignorée et le champ reste non modifiable.
+                                                  // - modifiable uniquement pour les statuts qui l'autorisent.
+                                                  // - lecture seule pour tous les autres statuts.
+                                                  // - lecture seule par défaut.
+                                                  Coalesce(
+                                                      vcStatutConfig.Controls.crdCODICandRetenu_F.Mode,
+                                                      DisplayMode.View
+                                                  )
                                                 DisplayName: ="Candidat Retenu"
-                                                Height: =80
+                                                Height: =100
                                                 Required: =false
                                                 Update: |-
                                                   =      If(
-                                                              Self.Visible && !IsBlank(DataCardValue32_1.Selected),
+                                                              Self.Visible && !IsBlank(drpCODICandRetenu_F.Selected),
                                                               {
                                                                   Claims: Concatenate(
                                                                       "i:0#.f|membership|",
-                                                                      DataCardValue32_1.Selected.Mail// Person email
+                                                                      drpCODICandRetenu_F.Selected.Mail// Person email
                                                                   ),
                                                                   Department: "",
-                                                                  DisplayName: DataCardValue32_1.Selected.DisplayName,
-                                                                  Email: DataCardValue32_1.Selected.Mail, // Person email
+                                                                  DisplayName: drpCODICandRetenu_F.Selected.DisplayName,
+                                                                  Email: drpCODICandRetenu_F.Selected.Mail, // Person email
                                                                   JobTitle: "",
                                                                   Picture: ""
                                                               },
@@ -3338,7 +3518,7 @@ Screens:
                                                       Visible: =And(!IsBlank(Parent.Error), Parent.DisplayMode=DisplayMode.Edit)
                                                       Width: =Parent.Width - 48
                                                       X: =24
-                                                      Y: =DataCardValue32_1.Y + DataCardValue32_1.Height
+                                                      Y: =drpCODICandRetenu_F.Y + drpCODICandRetenu_F.Height
                                                 - StarVisible32_1:
                                                     Control: ModernText@1.0.0
                                                     Properties:
@@ -3358,7 +3538,7 @@ Screens:
                                                       Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
                                                       Width: =30
                                                       Y: =DataCardKey32_1.Y
-                                                - DataCardValue32_1:
+                                                - drpCODICandRetenu_F:
                                                     Control: ModernCombobox@1.1.2
                                                     Properties:
                                                       AccessibleLabel: =Parent.DisplayName
@@ -3369,7 +3549,7 @@ Screens:
                                                       FontWeight: =""
                                                       InputTextPlaceholder: |-
                                                         ="👤Rechercher un agent"
-                                                      ItemDisplayText: =ThisItem.DisplayName
+                                                      ItemDisplayText: =ThisItem.DisplayName & " (" & Text(ThisItem.MailNickname) & ")"
                                                       Items: |-
                                                         ='Utilisateursd’Office365'.SearchUserV2({searchTerm: Self.SearchText, isSearchTermRequired: false, top: 50}).value
                                                       Required: =Parent.Required
@@ -3379,6 +3559,45 @@ Screens:
                                                       Width: =198
                                                       X: =24
                                                       Y: =36
+                                                - DataCardValue21_1:
+                                                    Control: ModernTextInput@1.1.2
+                                                    Properties:
+                                                      AccessibleLabel: =Parent.DisplayName
+                                                      Align: =Align.Right
+                                                      Default: =drpCODICandRetenu_F.Selected.MailNickname
+                                                      DisplayMode: =inpCodeES_F.DisplayMode
+                                                      FontWeight: =""
+                                                      Height: '=26  '
+                                                      Italic: =true
+                                                      MaxLength: =-1
+                                                      Placeholder: =""
+                                                      Required: =Parent.Required
+                                                      Size: =inpNumEmploi_F.Size
+                                                      TriggerOutput: =TriggerOutput.FocusOut
+                                                      ValidationState: =If(IsBlank(Parent.Error), "None", "Error")
+                                                      Width: =100
+                                                      X: =122
+                                                      Y: =66
+                                                - DataCardKey28_1:
+                                                    Control: ModernText@1.0.0
+                                                    Properties:
+                                                      Height: '=26  '
+                                                      Italic: =true
+                                                      PaddingBottom: =0
+                                                      PaddingLeft: =0
+                                                      PaddingRight: =0
+                                                      PaddingTop: =0
+                                                      RadiusBottomLeft: =0
+                                                      RadiusBottomRight: =0
+                                                      RadiusTopLeft: =0
+                                                      RadiusTopRight: =0
+                                                      Size: =txtTypeDemandeLabel_F.Size
+                                                      Text: ="Numéro Ulis:"
+                                                      VerticalAlign: =txtTypeDemandeLabel_F.VerticalAlign
+                                                      Width: =86
+                                                      Wrap: =false
+                                                      X: =80
+                                                      Y: =68
                                           - crdDatePromSend_F:
                                               Control: TypedDataCard@1.0.7
                                               Variant: DateEdit
@@ -3663,6 +3882,23 @@ Screens:
 
                                     _StatusKey.DirReaffAuditCODI,
                                         With({MyCategorieDocument : _DocumentCategory.ReaffectPV},
+                                            If(IsBlank(LookUp(ccLinkedDocuments,CategorieDocument.Value = MyCategorieDocument)),
+                                                            "Le document [" & MyCategorieDocument &"] est obligatoire" & Char(10) ) 
+                                        )
+                                    ,
+
+                                    _StatusKey.CandidPVEnCours_AvecRecours,
+                                        If(IsBlank( crdCODICandRetenu_F.Update),                           
+                                                            "Le champ [" & crdCODICandRetenu_F.DisplayName &"] est obligatoire" & Char(10) )
+                                                & With({MyCategorieDocument : _DocumentCategory.PVDefinitif},
+                                            If(IsBlank(LookUp(ccLinkedDocuments,CategorieDocument.Value = MyCategorieDocument)),
+                                                            "Le document [" & MyCategorieDocument &"] est obligatoire" & Char(10) ) 
+                                        )
+                                    ,
+                                    _StatusKey.CandidPVEnCours_SansRecours,
+                                        If(IsBlank( crdCODICandRetenu_F.Update),                           
+                                                            "Le champ [" & crdCODICandRetenu_F.DisplayName &"] est obligatoire" & Char(10) )
+                                                & With({MyCategorieDocument : _DocumentCategory.PVDefinitif},
                                             If(IsBlank(LookUp(ccLinkedDocuments,CategorieDocument.Value = MyCategorieDocument)),
                                                             "Le document [" & MyCategorieDocument &"] est obligatoire" & Char(10) ) 
                                         )
@@ -4257,7 +4493,9 @@ Screens:
                                     Action: =_ActionOnForm.DirCandRetenu
                                     ActionState: |
                                       =If(IsBlank(txtValidationMsg_F.Text) , // Rend l’action disponible uniquement lorsque le message de validation est vide (aka : tous les champs obligatoires sont bien remplis)
-                                          Self.StateValues.Available,
+                                          If(IsBlank(drpDirReaffCandidatRetenu_F.Selected.DisplayName),Self.StateValues.Unavailable,
+                                          Self.StateValues.Available
+                                          ),
                                           Self.StateValues.MissingRequiredFields
                                       )
                                     BasePaletteColor: =RGBA(141, 229, 250, 1)
@@ -4284,6 +4522,9 @@ Screens:
                                                       StatusKey:          MyNextStatus.StatusKey,   
                                                       'Statut Detail':    MyNextStatus.StatutDetail,
                                                       'Statut General':   MyNextStatus.StatutGeneral
+                                                  },
+                                                  {
+                                                      DirReaffCandidatRetenu: frmNextStep_F.Updates.DirReaffCandidatRetenu
                                                   }
                                               )
                                           });
@@ -4311,7 +4552,9 @@ Screens:
                                                               "<p>Bonjour,</p> " 
                                                                       & "<p><i>[" & MyTypeDemande & "]: </i></p>
                                                                       <p> Votre demande a un nouveau statut : " & MyNextStatus.StatutDetail & " (" & MyNextStatus.StatutGeneral & ")" &
-                                                                      "<p><b>" & MySpw & "</b> (emploi <b>" & MyNumEmploi & "</b>)."
+                                                                      "<p><b>" & MySpw & "</b> (emploi <b>" & MyNumEmploi & "</b>).</p>"
+                                                                      & "<p><u>Candidat retenu : </u> <br>" 
+                                                                      & "<i>" &  drpDirReaffCandidatRetenu_F.Selected.DisplayName & " (Ulis :  "& drpDirReaffCandidatRetenu_F.Selected.MailNickname  &")</i></p>"
                                                                       & _txtMessage.EmailFooter 
                                                           );
                                                       )
@@ -4331,7 +4574,7 @@ Screens:
                                               Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)
                                           );
                                       );
-                                    OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
+                                    OnUnavailable: =Notify("Le champ [Candidat reaffecté] est obligatoire",NotificationType.Warning,4000)
                                     SourceStatuses: =[_StatusKey.DirReaffAuditCODI]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
@@ -4385,6 +4628,9 @@ Screens:
                                                       StatusKey:          MyNextStatus.StatusKey,   
                                                       'Statut Detail':    MyNextStatus.StatutDetail,
                                                       'Statut General':   MyNextStatus.StatutGeneral
+                                                  },
+                                                  {
+                                                      DirReaffCandidatRetenu: frmNextStep_F.Updates.DirReaffCandidatRetenu
                                                   }
                                               )
                                           });
@@ -4564,9 +4810,9 @@ Screens:
                                     AccessibleLabel: ="Bouton Refuser la demande"
                                     Action: =_ActionOnForm.CODICandSelect
                                     ActionState: |
-                                      =If(Not(IsBlank(crdCODICandRetenu_F.Update)), 
+                                      =If(IsBlank(txtValidationMsg_F.Text) , // Rend l’action disponible uniquement lorsque le message de validation est vide (aka : tous les champs obligatoires sont bien remplis)
                                           Self.StateValues.Available,
-                                          Self.StateValues.Unavailable
+                                          Self.StateValues.MissingRequiredFields
                                       )
                                     BasePaletteColor: =RGBA(141, 229, 250, 1)
                                     EligibleItemsCount: =Blank()
@@ -4576,10 +4822,9 @@ Screens:
                                     NextStatus: =_StatusKey.CandidPVTermines
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {CODICandidatRetenu:  frmNextStep_F.Updates.CODICandidatRetenu},\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Décision du CODI enregistrée\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\n                        <p>La décision du CODI enregistrée pour la <i>\" & MyTypeDemande & \"</i> via <b>\" & _AppName & \"</b> \" &\n                        \"pour le <b>\" & vcDemande.SPW & \"</b> (emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b>).\"\n                        & \"<br><u>Candidat retenu : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CODICandidatRetenu.DisplayName & \" (\"& vcDemande.CODICandidatRetenu.Email  &\")</i>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
+                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {CODICandidatRetenu:  frmNextStep_F.Updates.CODICandidatRetenu},\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix & \" \" & MyTypeDemande & \": \"\n                            & \" Décision du CODI enregistrée\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\"\n                        & \"<p><i><u>Concerne : [\" & MyTypeDemande & \"]: </i></u></p>\"\n                        & \" <p>La décision du CODI est enregistrée pour l'emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b> ( <b>\" & vcDemande.SPW & \"</b>).</p>\"\n                        & \"<p><u>Candidat retenu : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CODICandidatRetenu.DisplayName & \" (Ulis :  \"& drpCODICandRetenu_F.Selected.MailNickname  &\")</i></p>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
                                     OnUnavailable: |
-                                      =// ## Informe l'utilisateur des informations requises
-                                      Notify("Un candidat est obligatoire pour valider une demande" ,NotificationType.Warning ,2000);
+                                      =Notify(_txtMessage.ActionUnsupported ,NotificationType.Warning ,2000);
                                     SourceStatuses: =[""]
                                     SourceStatusesData: |-
                                       =ForAll(Self.SourceStatuses As MySourceStatus,
@@ -4903,7 +5148,21 @@ Screens:
                                     PaddingRight: =0
                                     PaddingTop: =0
                                     Size: =10
-                                    Text: =ThisItem.Nom
+                                    Text: |-
+                                      =With(
+                                          {
+                                              m: Match(
+                                                  ThisItem.Nom,
+                                                  "^(.*)_\d{14}(\.[^.]+)$"
+                                              )
+                                          },
+                                          If(
+                                              IsBlank(m.FullMatch),
+                                              ThisItem.Nom,
+                                              First(m.SubMatches).Value &
+                                              Last(m.SubMatches).Value
+                                          )
+                                      )
                                     VerticalAlign: =VerticalAlign.Top
                                     Width: =Parent.Width - Self.X
                                     X: =imgDocumentMiniature_F.X + imgDocumentMiniature_F.Width
@@ -5172,3 +5431,42 @@ Screens:
             Width: =40
             X: =Parent.Width - Self.Width
             Y: =Parent.Height - Self.Height
+      - ctnSpinner_F:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            Fill: =ColorValue("#80808080")
+            Height: =ctnBodyContainer_F.Height
+            Visible: |-
+              =cmpActBtnCancel_F.IsLoading
+              ||cmpActBtnCreate_F.IsLoading
+              ||cmpActBtnDelete_F.IsLoading
+              ||cmpActBtnSave_F.IsLoading
+              ||cmpActBtnSend_F.IsLoading
+              ||cmpActbtnDACRefuse_F.IsLoading
+              ||cmpActbtnDACValidate_F.IsLoading
+              ||cmpActbtnDirCandRetenu_F.IsLoading
+              ||cmpActbtnDirCandPasRetenu_F.IsLoading
+              ||cmpActBtnCOSTRARefus_F.IsLoading
+              ||cmpActBtnCODICandidat_F.IsLoading
+              ||cmpActBtnPromRefus_F.IsLoading
+              ||cmpActBtnPromAppro_F.IsLoading
+            Width: =ctnBodyContainer_F.Width
+            X: =ctnBodyContainer_F.X
+            Y: =ctnBodyContainer_F.Y
+          Children:
+            - Spinner1:
+                Control: ModernSpinner@1.1.0
+                Properties:
+                  Height: =200
+                  Label: ="Traitement en cours"
+                  LabelPosition: =SpinnerLabelPosition.Below
+                  Width: '=300 '
+                  X: =(Parent.Width - Self.Width)/2
+                  Y: =(Parent.Height - Self.Height) / 2
+      - Text5:
+          Control: ModernText@1.0.0
+          Properties:
+            Text: =CountRows(drpDirReaffCandidatRetenu_F.SelectedItems)
+            X: =40
+            Y: =40
