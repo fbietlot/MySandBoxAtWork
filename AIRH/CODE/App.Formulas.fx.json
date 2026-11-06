@@ -1,4 +1,4 @@
-_AppVersion = "0.13.03";;
+_AppVersion = "0.13.10";;
 _AppName = "Promotion Encadrement";;
 _AppLink = vvAppConfig.AppUrl;;
 
@@ -1702,7 +1702,7 @@ _txtMessage = {
     DocLinkedToDemandesSuccess : 
         "Votre document est lié aux demandes avec succès";
     DocUnLinkedToDemandeSuccess : 
-        "Votre document a été délieé de la demande avec succès";
+        "Votre document a été délié de la demande avec succès";
     RequiredFields : 
         "Veuillez vérifier que tous les champs et/ou documents obligatoires sont complétés";
     NoEligibleRequest:

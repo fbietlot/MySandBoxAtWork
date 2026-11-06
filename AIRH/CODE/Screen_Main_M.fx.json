@@ -113,8 +113,6 @@ Screens:
                 Select(BtnLoadDemandes_M), // on recharge la liste avec le statut mis à jour mais on ne touche pas au filtre
             _ActionOnList.GWDecision , 
                 false, // Si on est en cours de process on ne doit pas recharger et reinitialiser
-            _ActionOnList.CODIDecision , 
-                false, // Si on est en cours de process on ne doit pas recharger et reinitialiser
             _ActionOnList.AddDoc,
                 false, // Si on est en cours de process on ne doit pas recharger et reinitialiser
 
@@ -225,7 +223,7 @@ Screens:
                         PaddingRight: =2
                         PaddingTop: =2
                         Size: =13
-                        Text: ="Veuilliez sélectionner un type de demande pour effectuer lance un processus"
+                        Text: ="Veuillez sélectionner un type de demande pour lancer un processus"
                         Visible: =tabTypeDemande_M.Selected.Type = _TypeDemande.All && Not(IsBlank(vvUserRole.Key))
                         Width: =Parent.Width
                   - ctnActionButtons_M:
@@ -301,7 +299,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton Modifier la Demande"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.Finaliser
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -391,7 +389,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton Modifier la Demande"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.SendDAC
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -670,7 +668,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton encoder la décision du GW"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.DirCandid
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -762,7 +760,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton encoder la validation par la DAC"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.DirAudition
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -857,7 +855,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton d'nvoi de la Note au GW"
+                                    AccessibleLabel: ="Bouton d'envoi de la Note au GW"
                                     Action: =_ActionOnList.SendNoteGW
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -949,7 +947,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton encoder la décision du GW"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.CostraDecision
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -1034,7 +1032,7 @@ Screens:
                                     InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =Blank() // Non relevant car il s'agit d'un process qui permet deux options qui mènent à des status différent
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
-                                    OnAlreadyRunning: =Select(btnSendGWCancel_M); //Arrêter Le processus
+                                    OnAlreadyRunning: =Select(btnGenericExitProcess_M); //Arrêter Le processus
                                     OnAvailable: |-
                                       =// ## Logique métier de lancemnt d'un process
                                       With(
@@ -1260,7 +1258,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton encoder la décision du GW"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.CandAudit
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -1353,7 +1351,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton encoder la décision du GW"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.CODIDecision
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -1444,7 +1442,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton encoder la décision du GW"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.PromRedaction
                                     ActionState: |-
                                       =// Détermine l'état métier du processus.
@@ -1579,7 +1577,7 @@ Screens:
                                     InteractionEnabled: =tabTypeDemande_M.Selected.Type <> _TypeDemande.All
                                     NextStatus: =_StatusKey.PromAuGWDG
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey=Self.NextStatus)
-                                    OnAlreadyRunning: =Select(btnAppelCanidExit_M); //Arrêter Le processus
+                                    OnAlreadyRunning: =Select(btnGenericExitProcess_M); //Arrêter Le processus
                                     OnAvailable: "=// ## Logique métier de lancemnt d'un process\nWith(\n    {\n        MyProcess :         Self.Action,\n        MyFilterToApply :   _FilterToApply._DynamicOnStatus,\n        MyCurrentStatus :   Self.SourceStatusesData\n    },\n\n    //Prepare le filtre sur les type de demandes sur lesquels l'action est applicable\n    ClearCollect(ccValidForTypeDemande,\n        Distinct(\n            Filter(_TypeDemandeConfigTable,Self.Action in Actions),\n            Type\n        )\n    );\n\n    //Reinitialisation des contrôle de choix ou d'entrée du conteneur lié au Processus\n    Reset(dtePromEnvoiDate_M);\n\n    //Preparation de la selection par defaut de toutes les demandes dans le statut à traiter\n    UpdateIf(ccDemandes,\n                true,\n                {RecordSelected: ThisRecord.StatusKey in MyCurrentStatus.StatusKey}\n    );\n    Select(btnGridClearSelect_M);\n\n    //Preparation du filtre pour les Rangs utilisé dans la gallerie de filtre du container de Process\n    ClearCollect(ccRangFilter,\n        AddColumns( \n            Sort( \n                Distinct(\n                    Filter( ccDemandes,StatusKey in MyCurrentStatus.StatusKey) ,\n                    Rang\n                ),\n            Value\n        ),\n        Selected,false)\n    );\n\n    // Initialisation des variables définissant le contexte d'exécution du processus\n    UpdateContext({\n        vcCurrentProcess:           MyProcess,\n        vcWizardStep :              1,\n        vcWizardCompleted:          false,\n        /* Détermine l'étape à atteindre après la sélection d'une demande dans la liste.\n           À lier au contrôle caché de numérotation de l'étape de sélection présent dans le conteneur du processus.*/\n        vcWizardStepAfterSelect :   numPromEnvoiChoice_M.Value + 1 , \n        \n        vcApplyFilter :             MyFilterToApply,\n        vcApplyFilterOnStatus_V3:   MyCurrentStatus\n    })\n)"
                                     OnUnavailable: =Select(btnGenericActionUnsupported_M)
                                     SourceStatuses: =[_StatusKey.PromRedaction]
@@ -1737,8 +1735,9 @@ Screens:
                                                       'Type de demande': {Value : ThisItem.Value}
                                                   },
                                                   {
-                                                      'Statut General': MyStatusDetail.StatutGeneral,
-                                                      'Statut Detail':  MyStatusDetail.StatutDetail
+                                                      StatusKey :         MyStatusDetail.StatusKey,
+                                                      'Statut General':   MyStatusDetail.StatutGeneral,
+                                                      'Statut Detail':    MyStatusDetail.StatutDetail
                                                   }
                                               )
                                           });
@@ -2031,16 +2030,7 @@ Screens:
                                     Icon: ="Filter"
                                     InteractionEnabled: =true
                                     NextStatus: =Blank()
-                                    NextStatusData: |-
-                                      ={
-                                          StatusKey:          "DemandeBrouillon",
-                                          StatutDetail:       "Brouillon de demande",
-                                          StatutGeneral:      "Formulaire de demande",
-                                          ProcessStepKey:     "InitDemande",
-                                          ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                          ActionRequired:     true,
-                                          LinkedTypeDemande:  []
-                                      }
+                                    NextStatusData: =
                                     OnAlreadyRunning: |-
                                       =UpdateContext({ vcCurrentProcess : Blank()})
                                     OnAvailable: |-
@@ -2053,26 +2043,7 @@ Screens:
                                       )
 
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: |-
-                                      =Table(
-                                          {
-                                              StatusKey:          "DemandeNew",
-                                              StatutDetail:       "Nouvelle demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              LinkedTypeDemande:  []
-                                          },
-                                          {
-                                              StatusKey:          "DemandeBrouillon",
-                                              StatutDetail:       "Brouillon de demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              ActionRequired:     true,
-                                              LinkedTypeDemande:  []
-                                          }
-                                      )
+                                    SourceStatusesData: =
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction :Self.Action},
@@ -2086,7 +2057,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Afficher les critères de filtres"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnList.Archive
                                     ActionState: |
                                       =If(vcCurrentProcess = Blank(),
@@ -2111,16 +2082,7 @@ Screens:
                                     Icon: ="Library"
                                     InteractionEnabled: =true
                                     NextStatus: =Blank()
-                                    NextStatusData: |-
-                                      ={
-                                          StatusKey:          "DemandeBrouillon",
-                                          StatutDetail:       "Brouillon de demande",
-                                          StatutGeneral:      "Formulaire de demande",
-                                          ProcessStepKey:     "InitDemande",
-                                          ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                          ActionRequired:     true,
-                                          LinkedTypeDemande:  []
-                                      }
+                                    NextStatusData: =
                                     OnAlreadyRunning: |-
                                       =UpdateContext({ vcCurrentProcess : Blank()});
                                       Select(BtnLoadDemandes_M)
@@ -2134,26 +2096,7 @@ Screens:
                                       )
 
                                     SourceStatuses: =[""]
-                                    SourceStatusesData: |-
-                                      =Table(
-                                          {
-                                              StatusKey:          "DemandeNew",
-                                              StatutDetail:       "Nouvelle demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              LinkedTypeDemande:  []
-                                          },
-                                          {
-                                              StatusKey:          "DemandeBrouillon",
-                                              StatutDetail:       "Brouillon de demande",
-                                              StatutGeneral:      "Formulaire de demande",
-                                              ProcessStepKey:     "InitDemande",
-                                              ActionOwner:        {Key : "DFA",   Icon : "📝",       Text : "📝 DFA"},
-                                              ActionRequired:     true,
-                                              LinkedTypeDemande:  []
-                                          }
-                                      )
+                                    SourceStatusesData: =
                                     Text: =Self.Action
                                     Visible: |-
                                       =With({MyAction :Self.Action},
@@ -2626,21 +2569,17 @@ Screens:
                         RadiusTopLeft: =10
                         RadiusTopRight: =10
                         Visible: |-
-                          =vcCurrentProcess in [_ActionOnList.SendNoteGW]
-
-
+                          =ctnProcessSendGW_M.Visible
                           || ctnProcessCreateLot_M.Visible
                           || ctnProcessAddDoc.Visible 
                           || ctnProcessSendDAC_M.Visible 
                           || ctnProcessDirCandid_M.Visible 
                           || ctnProcessCOSTRADescision_M.Visible 
                           || ctnProcessGWDecision_M.Visible
-                          ||ctnProcessCandAppel_M.Visible
+                          || ctnProcessCandAppel_M.Visible
                           || ctnProcessCandSendDFA_M.Visible
-                          ||ctnProcessCandAud_M.Visible
-
-                          ||ctnProcessCODIDecision_M_OBSOLETE.Visible 
-                          ||ctnProcessPromRedact_M.Visible 
+                          || ctnProcessCandAud_M.Visible
+                          || ctnProcessPromRedact_M.Visible 
                           || ctnProcessPromEnvoi_M.Visible
                         Width: =400
                         X: =40
@@ -3496,7 +3435,7 @@ Screens:
                                           Text: =If(vcWizardStep = numPromRedacExit_M.Value, "Terminer","Annuler")
                                           VerticalAlign: =VerticalAlign.Middle
                                           Width: =Parent.Width - Parent.PaddingLeft - Parent.PaddingRight
-                        - ctnProcessCODIDecision_M_OBSOLETE:
+                        - ctnProcessCODIDecision_M_DEPRECATED:
                             Control: GroupContainer@1.5.0
                             Variant: AutoLayout
                             Properties:
@@ -3507,7 +3446,7 @@ Screens:
                               PaddingLeft: =8
                               PaddingRight: =8
                               PaddingTop: =8
-                              Visible: =vcCurrentProcess = _ActionOnList.CODIDecision && false // [OBSOLETE] Passage en traitement individuel JIRA-PJ03444-110
+                              Visible: "=// [DEPRECATED] Passage en traitement individuel JIRA-PJ03444-110\r\nvcCurrentProcess = _ActionOnList.CODIDecision && false "
                               Width: =Parent.Width
                               X: =(Parent.Width - Self.Width ) /2
                             Children:
@@ -5063,7 +5002,9 @@ Screens:
                                     PaddingLeft: =8
                                     PaddingRight: =8
                                     PaddingTop: =8
-                                    Visible: =radGWdecisionChoice_M.Selected.Value = Blank()
+                                    Visible: |-
+                                      =// Placeholder de l'étape 4 en attendant le choix utilisateur concernant la décision du GW
+                                      radGWdecisionChoice_M.Selected.Value = Blank()
                                     Width: =414
                                     Y: =40
                                   Children:
@@ -5099,7 +5040,7 @@ Screens:
                                                     6,_Emoji._6
                                                 )
                                                 & If(vcWizardStep > MyStepNumber , "✅","")  
-                                                & " Date de DV / Commentaire Refus"
+                                                & " Informations complémentaires"
                                             )
                                           Width: '=Parent.Width - Parent.PaddingLeft - Parent.PaddingRight '
                               - ctnGWDecisionDate_M:
@@ -6617,7 +6558,7 @@ Screens:
                                                     // Statuts depuis lesquels le processus peut être exécuté 
                                                     // (à priori déclaré sur le bouton de lancement du processus)
                                                     // (utilisés plus loin pour maintenir le filtre après traitement)
-                                                    MySourceStatuses :  cmpActBtnSendDAC_M.SourceStatusesData
+                                                    MySourceStatuses :  cmpActBtnCreateLot_M.SourceStatusesData
                                                 },
 
                                                 // Create the 'Lot' by updating each selected 'Demande' to its next status (A4 path vs standard path)
@@ -6651,8 +6592,9 @@ Screens:
                                                         );
 
                                                        // # Trace chaque changement de statut dans l'historique
+                                                       // L'historisation est faite demande par demande car le statut peut être différent à chaque fois
                                                         fxLogStatusHistory(
-                                                            ShowColumns(vcDemande,ID,'Numéro d''emploi'),
+                                                            ShowColumns(MyDemande,ID,NumEmploi),
                                                             MyDemandeNextStatus.StatusKey,
                                                             vvUserRole.Key
                                                         )
@@ -6706,7 +6648,7 @@ Screens:
                                                 // Marque le processus comme terminé 
                                                 // et adapte le filtre afin d'afficher les demandes dans leur nouveau statut
                                                 UpdateContext({
-                                                    vcWizardStep:        5 ,
+                                                    vcWizardStep:       5 ,
                                                     vcWizardCompleted:  true,
 
                                                     /* Conservation du mécanisme _DynamicOnStatus : 
@@ -6954,7 +6896,7 @@ Screens:
                                                                         // Body: informations détaillées
                                                                         "<p>Bonjour,</p> " 
                                                                                 &    "<p><i>[" & MyTypeDemande & "]: </i></p>
-                                                                                <p>Les demandes suivantes ont été été transmise via <b>" & _AppName & "</b></p>"
+                                                                                <p>Les demandes suivantes ont été transmises via <b>" & _AppName & "</b></p>"
                                                                             & "<p><strong>" & MySpw &"</strong></p>
                                                                                 <ul>"
                                                                                 & MyListeEmploiHtml
@@ -7915,7 +7857,8 @@ Screens:
             Fill: =ColorValue("#80808080")
             Height: =Parent.Height - Self.Y - ctnMainContainer_M.PaddingBottom
             Visible: |
-              =cmpActBtnNew_M.IsLoading
+              =// [TODO] Sécuriser les traitements déclenchés par les boutons *Save_M contre les doubles exécutions : le spinner actuel couvre uniquement IsLoading des cmpActionButton et ne verrouille pas ces boutons pendant les Patch, l'historisation et l'envoi des notifications. Prévoir un état de traitement partagé pour désactiver les actions concernées et afficher le spinner jusqu'à la fin complète du traitement.
+              cmpActBtnNew_M.IsLoading
               || cmpActBtnFinaliser_M.IsLoading
               || cmpActBtnSendDAC_M.IsLoading
               || cmpActBtnDACValid_M.IsLoading

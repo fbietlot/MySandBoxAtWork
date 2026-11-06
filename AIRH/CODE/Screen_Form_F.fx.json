@@ -336,7 +336,7 @@ Screens:
                                           Item: =vcDemande
                                           NumberOfColumns: =2
                                           SnapToColumns: =false
-                                          Visible: =Coalesce( vcStatutConfig.Controls.FormNextStep.Visible,true)
+                                          Visible: =Coalesce( vcStatutConfig.Controls.FormGeneralInfo.Visible,true)
                                           Width: =Parent.Width
                                         Children:
                                           - crdHeadeGeneralInfo_F:
@@ -3251,7 +3251,7 @@ Screens:
                                                 Default: =ThisItem.DateCandidFinAppel
                                                 DisplayMode: "=// Mode :\r\n// - si le formulaire parent est en consultation (FormMode.View) : cette configuration est ignorée et le champ reste non modifiable.\r\n// - modifiable uniquement pour les statuts qui l'autorisent.\r\n// - lecture seule pour tous les autres statuts.\r\n// - lecture seule par défaut.\r\nCoalesce(\r\n    vcStatutConfig.Controls.crdDateCandidFinAppel_F.Mode,\r\n    DisplayMode.View\r\n) "
                                                 DisplayName: |-
-                                                  ="📅 Fin d'appel au candidature"
+                                                  ="📅 Fin de l'appel à candidatures"
                                                 Required: =false
                                                 Update: =dteDateCandidFinAppel_F.SelectedDate
                                                 Visible: |-
@@ -3906,7 +3906,7 @@ Screens:
 
                                     _StatusKey.PromAuGWDG,
                                         If(!IsBlank(txtValidationAppro_F.Text),                           
-                                                            "----- Pour l'approbabtion -----" & Char(10) & txtValidationAppro_F.Text
+                                                            "----- Pour l'l'approbation -----" & Char(10) & txtValidationAppro_F.Text
                                         )
                                         &
                                         If(!IsBlank(txtValidationRefus_F.Text),                           
@@ -3930,7 +3930,7 @@ Screens:
                               PaddingBottom: =0
                               Size: =10
                               Text: |-
-                                =// Ce contrôle n'est utilisé que pour les statut permetant une appro ou un refus nécessisant chacun des champs obligatoires (mais différents)
+                                =// Ce contrôle est utilisé uniquement pour les statuts permettant une approbation ou un refus nécessitant chacun des champs obligatoires différents
                                 // il n'est pas visible mais son contenu est affiché dans le contrôle standard txtValidationMsg_F
                                 // Par contre le statut des boutons Appro ou Refus ce base directement sur ce controle
                                 Switch(vcStatutConfig.StatusKey,
@@ -3958,7 +3958,7 @@ Screens:
                               PaddingBottom: =0
                               Size: =10
                               Text: |-
-                                =// Ce contrôle n'est utilisé que pour les statut permetant une appro ou un refus nécessisant chacun des champs obligatoires (mais différents)
+                                =// Ce contrôle est utilisé uniquement pour les statuts permettant une approbation ou un refus nécessitant chacun des champs obligatoires différents
                                 // il n'est pas visible mais son contenu est affiché dans le contrôle standard txtValidationMsg_F
                                 // Par contre le statut des boutons Appro ou Refus ce base directement sur ce controle
                                 Switch(vcStatutConfig.StatusKey,
@@ -4046,7 +4046,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: =
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.Create
                                     ActionState: |
                                       =If(IsBlank(txtValidationMsg_F.Text) , // Rend l’action disponible uniquement lorsque le message de validation est vide (aka : tous les champs obligatoires sont bien remplis)
@@ -4119,7 +4119,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: =
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.Delete
                                     ActionState: =Self.StateValues.Available
                                     BasePaletteColor: =RGBA(141, 229, 250, 1)
@@ -4155,7 +4155,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: =
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.Save
                                     ActionState: |
                                       =Self.StateValues.Available
@@ -4238,7 +4238,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: =
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.SendDAC
                                     ActionState: |
                                       =If(
@@ -4254,7 +4254,7 @@ Screens:
                                     NextStatus: =_StatusKey.DemandeEnCours
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {\n                StatusKey:          MyNextStatus.StatusKey,  \n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            },\n            frmGeneralInfo_F.Updates\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    //MyNbDemandes :      Value(CountRows(MyDemandeSPW));\n                    MySpw :             vcDemande.SPW,\n                    MyListeEmploiHtml :  \"<li>\" & vcDemande.'Numéro d''emploi' & \"</li>\",\n                    MyNumEmploi :       vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : distribution list\n                        MyRecipients,\n                        // Subject: notification métier                   \n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Nouvelle(s) demande(s) envoyée(s) (\" & MySpw & \")\",   \n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p> \" \n                                &    \"<p><i>[\" & MyTypeDemande & \"]: </i></p>\n                                <p>La/Les demande(s) suivante(s) ont été été transmise(s) via <b>\" & _AppName & \"</b></p>\"\n                            & \"<p><strong>\" & MySpw &\"</strong></p>\n                                <ul>\"\n                                & MyListeEmploiHtml\n                                &\"</ul>\" \n            \n                        & _txtMessage.EmailFooter \n                    );\n                )\n               \n            ),\n        \n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
+                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {\n                StatusKey:          MyNextStatus.StatusKey,  \n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            },\n            frmGeneralInfo_F.Updates\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    //MyNbDemandes :      Value(CountRows(MyDemandeSPW));\n                    MySpw :             vcDemande.SPW,\n                    MyListeEmploiHtml :  \"<li>\" & vcDemande.'Numéro d''emploi' & \"</li>\",\n                    MyNumEmploi :       vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : distribution list\n                        MyRecipients,\n                        // Subject: notification métier                   \n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Nouvelle(s) demande(s) envoyée(s) (\" & MySpw & \")\",   \n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p> \" \n                                &    \"<p><i>[\" & MyTypeDemande & \"]: </i></p>\n                                <p>La demande suivante a été transmise via <b>\" & _AppName & \"</b></p>\"\n                            & \"<p><strong>\" & MySpw &\"</strong></p>\n                                <ul>\"\n                                & MyListeEmploiHtml\n                                &\"</ul>\" \n            \n                        & _txtMessage.EmailFooter \n                    );\n                )\n               \n            ),\n        \n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
                                     SourceStatusesData: |-
@@ -4278,7 +4278,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: =
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.DACRefuse
                                     ActionState: |
                                       =If( Not(IsBlank(crdCommentValidDAC_F.Update)) , 
@@ -4384,7 +4384,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: =
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.DACValidate
                                     ActionState: =Self.StateValues.Available
                                     BasePaletteColor: =RGBA(141, 229, 250, 1)
@@ -4489,7 +4489,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: =
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.DirCandRetenu
                                     ActionState: |
                                       =If(IsBlank(txtValidationMsg_F.Text) , // Rend l’action disponible uniquement lorsque le message de validation est vide (aka : tous les champs obligatoires sont bien remplis)
@@ -4597,7 +4597,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: =
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.DirCandNonRet
                                     ActionState: |
                                       =If(IsBlank(txtValidationMsg_F.Text) , // Rend l’action disponible uniquement lorsque le message de validation est vide (aka : tous les champs obligatoires sont bien remplis)
@@ -4807,7 +4807,7 @@ Screens:
                                   Control: CanvasComponent
                                   ComponentName: cmpActionButton
                                   Properties:
-                                    AccessibleLabel: ="Bouton Refuser la demande"
+                                    AccessibleLabel: ="Bouton " & Self.Action
                                     Action: =_ActionOnForm.CODICandSelect
                                     ActionState: |
                                       =If(IsBlank(txtValidationMsg_F.Text) , // Rend l’action disponible uniquement lorsque le message de validation est vide (aka : tous les champs obligatoires sont bien remplis)
@@ -4967,7 +4967,7 @@ Screens:
                                     BasePaletteColor: =RGBA(141, 229, 250, 1)
                                     EligibleItemsCount: =Blank()
                                     Height: =32
-                                    Icon: ="DismissCircle"
+                                    Icon: ="CheckmarkCircle"
                                     InteractionEnabled: =true
                                     NextStatus: =_StatusKey.PromSignes
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
@@ -5136,7 +5136,7 @@ Screens:
                                     Width: =72
                                     X: =5
                                     Y: =5
-                              - Title7_1:
+                              - lblFileName_F:
                                   Control: Label@2.5.1
                                   Properties:
                                     BorderColor: =RGBA(0, 0, 0, 1)
@@ -5276,7 +5276,7 @@ Screens:
                             Control: CanvasComponent
                             ComponentName: cmpActionButton
                             Properties:
-                              AccessibleLabel: =
+                              AccessibleLabel: ="Bouton " & Self.Action
                               Action: =_ActionOnForm.AddDoc
                               ActionState: |
                                 =If(vcShowCategorieDocument , 
@@ -5347,7 +5347,7 @@ Screens:
                         Width: =400
                         X: =(Parent.Width - Self.Width)/2
                         Y: =40
-                  - btnDeleteCancel_F_1:
+                  - btnDeleteCancel_F:
                       Control: ModernButton@1.0.0
                       Properties:
                         Align: =Align.Center
@@ -5357,8 +5357,7 @@ Screens:
                         FontWeight: =FontWeight.Bold
                         Icon: ="Dismiss"
                         OnSelect: |
-                          =
-                          UpdateContext({ vcShowDeleteConfirm: false })
+                          =UpdateContext({ vcShowDeleteConfirm: false })
                         PaddingBottom: =5
                         PaddingLeft: =12
                         PaddingRight: =12
@@ -5372,7 +5371,7 @@ Screens:
                         Width: =120
                         X: =88
                         Y: =136
-                  - btnDeleteCancel_F_2:
+                  - btnDeleteConfirm_F:
                       Control: ModernButton@1.0.0
                       Properties:
                         Align: =Align.Center
@@ -5382,11 +5381,10 @@ Screens:
                         FontWeight: =FontWeight.Bold
                         Icon: ="Dismiss"
                         OnSelect: |+
-                          =
-                          IfError(
+                          =IfError(
                           // Suppression de la demande en status brouillon 
                              Remove(AIRH_Demandes, vcDemande),
-                             //[TODO] Remove ghost link to document
+                             // [TODO] Avant de supprimer la demande, retirer sa référence du champ DemandesLiees de tous les documents liés afin d'éviter les liens documentaires orphelins
                               Notify("Erreur : suppression impossible.", NotificationType.Error);
                               UpdateContext({ vcShowDeleteConfirm: false });
                               ,
@@ -5437,7 +5435,7 @@ Screens:
           Properties:
             Fill: =ColorValue("#80808080")
             Height: =ctnBodyContainer_F.Height
-            Visible: |-
+            Visible: |+
               =cmpActBtnCancel_F.IsLoading
               ||cmpActBtnCreate_F.IsLoading
               ||cmpActBtnDelete_F.IsLoading
@@ -5451,6 +5449,8 @@ Screens:
               ||cmpActBtnCODICandidat_F.IsLoading
               ||cmpActBtnPromRefus_F.IsLoading
               ||cmpActBtnPromAppro_F.IsLoading
+
+
             Width: =ctnBodyContainer_F.Width
             X: =ctnBodyContainer_F.X
             Y: =ctnBodyContainer_F.Y
@@ -5464,9 +5464,3 @@ Screens:
                   Width: '=300 '
                   X: =(Parent.Width - Self.Width)/2
                   Y: =(Parent.Height - Self.Height) / 2
-      - Text5:
-          Control: ModernText@1.0.0
-          Properties:
-            Text: =CountRows(drpDirReaffCandidatRetenu_F.SelectedItems)
-            X: =40
-            Y: =40
