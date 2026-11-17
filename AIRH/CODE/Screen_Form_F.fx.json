@@ -1,64 +1,67 @@
 Screens:
   Screen_Form_F:
     Properties:
-      OnVisible: |+
-        =UpdateContext({
+      OnVisible: |-
+        =//# 1 RESET VIEW STATE
+        // Réinitialise les éléments d'affichage temporaires avant de charger la demande
+        UpdateContext({
             vcShowDeleteConfirm: false ,
             vcShowDepartementLongText : false,
             vcshowStatusHitory:false
         });
 
-        //# 2 GET LINKED DOCUMENT
+        //# 2 LOAD LINKED DOCUMENTS
+        // Charge les documents liés à la demande courante pour leur utilisation dans l'application
+        // Le Flow permet de récupérer l'ensemble des documents malgré la relation multi-lookup SharePoint en s'affranchissant des problèmes de délégations
         If(Not(IsBlank(vcDemande)),
-
-        // Loads all documents linked to the current 'Demande' into a local collection for display/use in the app
-        // Retrieves linked 'documents' via a Flow because the project architecture uses a document library with a multi-lookup to 'Demandes', and this avoids delegation limits when loading the full set
-        UpdateContext({
-            vcLinkedDocuments_Json: 
-                AIRH_GetAllLinkedDocuments.Run(vcDemande.ID).response
-        });
-        // Parse json result into a proper collection
-        ClearCollect(
-            ccLinkedDocuments,
-            ForAll(
-                Table(ParseJSON(vcLinkedDocuments_Json)),
-                {
-                    ID: Value(Value.ID),
-                    Nom: Text(Value.Nom),
-                    DemandesLiees: ForAll(
-                        Table(Value.DemandesLiees),
-                        {
-                            Id: Value(Value.Id),
-                            Value: Text(Value.Value)
-                        }
-                    ),
-                    CategorieDocument :
-                        {
-                            Id: Value(Value.CategorieDocument.Id),
-                            Value: Text(Value.CategorieDocument.Value)
-                        },
-
-                    Url : Text(Value.Url),
-                    Miniature : Text(Value.Miniature)
-                }
-            )
-        );
-        If(Not(vvDebug),
-            UpdateContext({vcLinkedDocuments_Json:Blank()}));
-            ,//else
+            UpdateContext({vcDocIsLoading:true});
             UpdateContext({
-                vcDemande : Blank(),
-                vcLinkedDocuments_Json:Blank()
+                vcLinkedDocuments_Json: 
+                    AIRH_GetAllLinkedDocuments.Run(vcDemande.ID).response
             });
-            Clear(ccLinkedDocuments)
-        );
+            // Convertit la réponse du Flow en données directement exploitables dans l'application
+            ClearCollect(
+                ccLinkedDocuments,
+                ForAll(
+                    Table(ParseJSON(vcLinkedDocuments_Json)),
+                    {
+                        ID:  Value(Value.ID),
+                        Nom: Text(Value.Nom),
+                        DemandesLiees: ForAll(
+                            Table(Value.DemandesLiees),
+                            {
+                                Id: Value(Value.Id),
+                                Value: Text(Value.Value)
+                            }
+                        ),
+                        CategorieDocument :
+                            {
+                                Id: Value(Value.CategorieDocument.Id),
+                                Value: Text(Value.CategorieDocument.Value)
+                            },
 
+                        Url : Text(Value.Url),
+                        Miniature : Text(Value.Miniature)
+                    }
+                )
+            );
+            // Conserve la réponse brute uniquement lorsque le mode debug est actif
+            If(Not(vvDebug),
+                UpdateContext({vcLinkedDocuments_Json:Blank()})
+            );
+
+            ,// Sinon, réinitialise les données liées à une éventuelle demande précédente
+                UpdateContext({
+                    vcDemande : Blank(),
+                    vcLinkedDocuments_Json:Blank()
+                });
+                Clear(ccLinkedDocuments)
+            );
+
+        UpdateContext({vcDocIsLoading:false});
         //#3  SET UP SubwayNAV menu
+
         Reset(cbxSubNavRang_F);Reset(cbxSubNavStep_F);Reset(numSubNavMainStep_F_V2);Reset(numSubNavStep_F_V2);
-
-
-
-
     Children:
       - ctnMainContainer_F:
           Control: GroupContainer@1.5.0
@@ -124,7 +127,7 @@ Screens:
                         DefaultSelectedItems: |-
                           ={Value : vcDemande.Rang}
                         ItemDisplayText: =ThisItem.Value
-                        Items: =Distinct([@AIRH_Demandes],Rang)
+                        Items: =Distinct([@AIRH_SPList_Demandes],Rang)
                         LayoutMinHeight: =16
                         LayoutMinWidth: =16
                         SelectMultiple: =false
@@ -330,7 +333,7 @@ Screens:
                                         Control: Form@2.4.4
                                         Layout: Vertical
                                         Properties:
-                                          DataSource: =AIRH_Demandes
+                                          DataSource: =AIRH_SPList_Demandes
                                           DefaultMode: =Coalesce(vcStatutConfig.Controls.FormGeneralInfo.Mode,FormMode.View)
                                           Height: =Parent.Height
                                           Item: =vcDemande
@@ -404,8 +407,8 @@ Screens:
                                               Properties:
                                                 DataField: ="Title"
                                                 Default: =ThisItem.Titre
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,Titre)
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, Titre)
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,Titre)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, Titre)
                                                 Required: =false
                                                 Update: =drpTypeDemande_F.Selected.Value & "|" &   inpNumEmploi_F.Text & "|" &  dteDateDemandeCodi_F.SelectedDate
                                                 Visible: =vvDebug // Champ technique uniquement affiché en mode Debug
@@ -458,9 +461,9 @@ Screens:
                                                 DataField: ="NumEmploi"
                                                 Default: =ThisItem.'Numéro d''emploi'
                                                 DisplayMode: =If(frmGeneralInfo_F.Mode = FormMode.New, Parent.DisplayMode,DisplayMode.View) // AS there are a lot of informationand processes derivtaed form the initial selection of this field we will only allow its modification at creation of the 'Demandes'
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Numéro d''emploi')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Numéro d''emploi')
                                                 Height: =40
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, 'Numéro d''emploi')
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, 'Numéro d''emploi')
                                                 Required: =false
                                                 Update: =inpNumEmploi_F.Text
                                                 Width: =Parent.Width / 2
@@ -502,7 +505,7 @@ Screens:
                                                       OnChange: |-
                                                         =If(Len(Trim(Self.Text)) >= 3 ,
                                                             UpdateContext({
-                                                                vcPosteInformation : LookUp('AIRH_Information postes',Numero_de_poste = Self.Text)
+                                                                vcPosteInformation : LookUp(AIRH_Information_Postes,Numero_de_poste = Self.Text)
                                                             })
                                                         );
 
@@ -569,22 +572,30 @@ Screens:
                                                       ItemDisplayText: =ThisItem.Poste
                                                       Items: |-
                                                         =ShowColumns(
-                                                            Filter('AIRH_Information postes',DG = Coalesce(vvUserSPW, drpFilterSPW_M.Selected.SPW)) // Coalesce est utilisé pour le cas de la DFA
+                                                            Filter(AIRH_Information_Postes,DG = Coalesce(vvUserSPW, drpFilterSPW_M.Selected.SPW)) // Coalesce est utilisé pour le cas de la DFA
                                                             ,Numero_de_poste
                                                         )
                                                       OnChange: |-
                                                         =If(Len(Trim(Self.Selected.Poste)) >= 3 ,
                                                             UpdateContext({
-                                                                vcPosteInformation : LookUp('AIRH_Information postes',Numero_de_poste = Self.Selected.Poste)
+                                                                vcPosteInformation : LookUp(AIRH_Information_Postes,Numero_de_poste = Self.Selected.Poste)
                                                             });
                                                             If(vcTypeDemandeConfig.Type = _TypeDemande.DemandeFF,
                                                                 UpdateContext({ 
-                                                                    vcDateDVLinked : Max(
-                                                                        Filter(AIRH_Demandes,'Numéro d''emploi' = Self.Selected.Poste ,  DateDV_GW <> Blank())
-                                                                    ,DateDV_GW)
+                                                                    vcDateDVLinked : 
+                                                                        With({
+                                                                            MyDemandesForThisPoste : 
+                                                                                Filter(
+                                                                                    AIRH_SPList_Demandes,
+                                                                                    'Numéro d''emploi' = Self.Selected.Poste ,  
+                                                                                    DateDV_GW <> Blank()
+                                                                                )
+                                                                            },
+                                                                            Max(MyDemandesForThisPoste,DateDV_GW)
+                                                                        )
                                                                 });
                                                                 If(!IsBlank(vcDateDVLinked),
-                                                                    Notify("Date de demande de DV préalable récupérée (" & vcDateDVLinked & ")", NotificationType.Success,2000),
+                                                                    Notify("Date de demande de DV préalable récupérée (" & vcDateDVLinked & ")", NotificationType.Success,2000), 
                                                                     Notify("Aucune demande de DV préalable dans la base de données pour ce numéro d'emploi", NotificationType.Success,2000)
                                                                 )
                                                             )
@@ -605,10 +616,10 @@ Screens:
                                                 DataField: ="TypeDemande"
                                                 Default: |-
                                                   =If(frmGeneralInfo_F.Mode = FormMode.New,
-                                                      LookUp(Choices([@AIRH_Demandes].'Type de demande'),Value = vcTypeDemandeConfig.Type),
+                                                      LookUp(Choices([@AIRH_SPList_Demandes].'Type de demande'),Value = vcTypeDemandeConfig.Type),
                                                       ThisItem.'Type de demande'
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Type de demande')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Type de demande')
                                                 Height: =40
                                                 Required: =false
                                                 Update: =drpTypeDemande_F.Selected
@@ -647,7 +658,7 @@ Screens:
                                                       FontWeight: =""
                                                       InputTextPlaceholder: ="Chercher des articles"
                                                       ItemDisplayText: =ThisItem.Value
-                                                      Items: =Choices([@AIRH_Demandes].'Type de demande')
+                                                      Items: =Choices([@AIRH_SPList_Demandes].'Type de demande')
                                                       Required: =Parent.Required
                                                       SelectMultiple: =false
                                                       Size: =inpNumEmploi_F.Size
@@ -705,9 +716,9 @@ Screens:
                                                       vcPosteInformation.ES,
                                                       ThisItem.'Code ES'
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Code ES')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Code ES')
                                                 Height: =40
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, 'Code ES')
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, 'Code ES')
                                                 Required: =false
                                                 Update: =inpCodeES_F.Text
                                                 Visible: "=// Affiche le champ uniquement lorsque le numéro d'emploi a été complété lors de la création de la demande.\r\nNot(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation)) "
@@ -800,7 +811,7 @@ Screens:
                                               Properties:
                                                 DataField: ="DateDemandeCodi"
                                                 Default: =ThisItem.'Date de demande du CODI'
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Date de demande du CODI')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Date de demande du CODI')
                                                 Height: =crdCodeES_F.Height
                                                 Required: =false
                                                 Update: =dteDateDemandeCodi_F.SelectedDate
@@ -881,9 +892,9 @@ Screens:
                                                       vcPosteInformation.DG,
                                                       ThisItem.SPW
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,SPW)
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,SPW)
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, SPW)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, SPW)
                                                 Required: =false
                                                 Update: =DataCardValue24.Text
                                                 Visible: =Not(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation))
@@ -976,9 +987,9 @@ Screens:
                                               Properties:
                                                 DataField: ="RaisonDemande"
                                                 Default: =ThisItem.'Raison de la demande'
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Raison de la demande')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Raison de la demande')
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, 'Raison de la demande')
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, 'Raison de la demande')
                                                 Required: =false
                                                 Update: |-
                                                   =Switch(vcTypeDemandeConfig.ReasonSource,
@@ -1104,7 +1115,7 @@ Screens:
                                                   )
                                                 DisplayName: ="Département" & " :"
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, 'Département (Abréviation)')
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, 'Département (Abréviation)')
                                                 Required: =false
                                                 Update: =DataCardValue1.Text
                                                 Visible: =Not(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation))
@@ -1398,9 +1409,9 @@ Screens:
                                                       vcPosteInformation.Département,
                                                       ThisItem.Département
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,Département)
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,Département)
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, Département)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, Département)
                                                 Required: =false
                                                 Update: =inpDepartement_F.Text
                                                 Visible: =Not(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation)) && vcShowDepartementLongText
@@ -1499,9 +1510,9 @@ Screens:
                                                       vcPosteInformation.Direction,
                                                       ThisItem.Direction
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,Direction)
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,Direction)
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, Direction)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, Direction)
                                                 Required: =false
                                                 Update: =inpDirection_F.Text
                                                 Visible: =Not(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation))
@@ -1599,9 +1610,9 @@ Screens:
                                                       If(IsBlank(vcPosteInformation),Blank(), Coalesce( vcPosteInformation.Service,"/")),
                                                       ThisItem.Service
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,Service)
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,Service)
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, Service)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, Service)
                                                 Required: =false
                                                 Update: =DataCardValue27.Text
                                                 Visible: =Not(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation))
@@ -1699,9 +1710,9 @@ Screens:
                                                       If(IsBlank(vcPosteInformation),Blank(), Coalesce( vcPosteInformation.Rang,"/")),
                                                       ThisItem.Rang
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,Rang)
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,Rang)
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, Rang)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, Rang)
                                                 Required: =false
                                                 Update: =DataCardValue28.Text
                                                 Visible: =Not(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation))
@@ -1803,7 +1814,7 @@ Screens:
                                                   =//DataSourceInfo([@AIRH_Demandes];DataSourceInfo.DisplayName;'Résidence administrative (RA)')
                                                   "R.A."
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, 'Résidence administrative (RA)')
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, 'Résidence administrative (RA)')
                                                 Required: =false
                                                 Update: =DataCardValue21.Text
                                                 Visible: =Not(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation))
@@ -1893,7 +1904,7 @@ Screens:
                                                 - InformationButton1:
                                                     Control: ModernInformationButton@1.0.1
                                                     Properties:
-                                                      Content: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Résidence administrative (RA)')
+                                                      Content: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Résidence administrative (RA)')
                                                       Height: =16
                                                       Width: =16
                                                       X: =30
@@ -1909,9 +1920,9 @@ Screens:
                                                       If(IsBlank(vcPosteInformation),Blank(), Coalesce( vcPosteInformation.Metiers_details,"/")),
                                                       ThisItem.Métier
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,Métier)
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,Métier)
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, Métier)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, Métier)
                                                 Required: =false
                                                 Update: =DataCardValue2.Text
                                                 Visible: =Not(frmGeneralInfo_F.Mode = FormMode.New && IsBlank(vcPosteInformation))
@@ -2009,7 +2020,7 @@ Screens:
                                                       !IsBlank( vcPosteInformation.Classes_de_risques),
                                                       ThisItem.'Poste de sécurité'
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Poste de sécurité')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Poste de sécurité')
                                                 Height: =crdCodeES_F.Height
                                                 Required: =false
                                                 Update: =chkPosteSecurite_F.Checked
@@ -2104,9 +2115,9 @@ Screens:
                                                       If(IsBlank(vcPosteInformation),Blank(), Coalesce( vcPosteInformation.Classes_de_risques,"/")),
                                                       ThisItem.'Classe de risques'
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Classe de risques')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Classe de risques')
                                                 Height: =crdCodeES_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, 'Classe de risques')
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, 'Classe de risques')
                                                 Required: =false
                                                 Update: =DataCardValue35.Text
                                                 Visible: =chkPosteSecurite_F.Checked
@@ -2199,7 +2210,7 @@ Screens:
                                               Properties:
                                                 DataField: ="PosteOccupeParFF"
                                                 Default: =ThisItem.'Poste occupé par des ff'
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Poste occupé par des ff')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Poste occupé par des ff')
                                                 Height: =crdCodeES_F.Height
                                                 Required: =false
                                                 Update: =chkPosteOccupeFF_F.Checked
@@ -2304,7 +2315,7 @@ Screens:
                                                           Mail:       ThisItem.'Personne occupant les ff'.Email
                                                       }
                                                   )
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,'Personne occupant les ff')
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,'Personne occupant les ff')
                                                 Height: =crdCodeES_F.Height
                                                 Required: =false
                                                 Update: |-
@@ -2426,7 +2437,7 @@ Screens:
                                         Control: Form@2.4.4
                                         Layout: Vertical
                                         Properties:
-                                          DataSource: =AIRH_Demandes
+                                          DataSource: =AIRH_SPList_Demandes
                                           DefaultMode: |-
                                             =// Mode :
                                             //  - lecture seule lorsque l'écran est ouvert en consultation.
@@ -2525,9 +2536,9 @@ Screens:
                                                   //  - champ non modifiable depuis l'écran de détail.
                                                   //  - la valeur est mise à jour par le processus correspondant.
                                                   DisplayMode.View
-                                                DisplayName: =DataSourceInfo([@AIRH_Demandes],DataSourceInfo.DisplayName,Lot)
+                                                DisplayName: =DataSourceInfo([@AIRH_SPList_Demandes],DataSourceInfo.DisplayName,Lot)
                                                 Height: =40
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, Lot)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, Lot)
                                                 Required: =false
                                                 Update: =inpLot_F.Text
                                                 Visible: |-
@@ -3143,7 +3154,7 @@ Screens:
                                                   DisplayMode.View
                                                 DisplayName: ="Commentaire de refus par le GW"
                                                 Height: =crdCommentValidDAC_F.Height
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, CommentGW)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, CommentGW)
                                                 Required: =false
                                                 Update: =txtCommentGW_F.Text
                                                 Visible: |-
@@ -3698,7 +3709,7 @@ Screens:
                                                       DisplayMode.View
                                                   )
                                                 DisplayName: ="Commentaire de refus de promotion par le GW"
-                                                MaxLength: =DataSourceInfo([@AIRH_Demandes], DataSourceInfo.MaxLength, CommentPromGW)
+                                                MaxLength: =DataSourceInfo([@AIRH_SPList_Demandes], DataSourceInfo.MaxLength, CommentPromGW)
                                                 Required: =false
                                                 Update: =txtCommentPromGW_F.Text
                                                 Visible: |-
@@ -3906,7 +3917,7 @@ Screens:
 
                                     _StatusKey.PromAuGWDG,
                                         If(!IsBlank(txtValidationAppro_F.Text),                           
-                                                            "----- Pour l'l'approbation -----" & Char(10) & txtValidationAppro_F.Text
+                                                            "----- Pour l'approbation -----" & Char(10) & txtValidationAppro_F.Text
                                         )
                                         &
                                         If(!IsBlank(txtValidationRefus_F.Text),                           
@@ -4028,7 +4039,7 @@ Screens:
 
                                       // Etant donné que pour la création une demande est toujours créée à vide depuis l'écran principale, il faut la supprimer en cas d'annulation de la création
                                       If(vcStatutConfig.StatusKey = _StatusKey.DemandeNew,
-                                          Remove(AIRH_Demandes,vcDemande)
+                                          Remove(AIRH_SPList_Demandes,vcDemande)
                                       );
 
                                       Navigate(Screen_Main_M);
@@ -4071,7 +4082,7 @@ Screens:
 
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   frmGeneralInfo_F.Updates,
                                                   {
@@ -4082,7 +4093,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               // # Trace chaque changement de statut dans l'historique
                                               fxLogStatusHistory(
                                                   ShowColumns(vcDemande,ID,'Numéro d''emploi'),
@@ -4183,7 +4194,7 @@ Screens:
                                           },
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   frmGeneralInfo_F.Updates,
                                                   {
@@ -4197,7 +4208,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               // # Trace chaque changement de statut dans l'historique
                                               fxLogStatusHistory(
                                                   ShowColumns(vcDemande,ID,'Numéro d''emploi'),
@@ -4254,7 +4265,7 @@ Screens:
                                     NextStatus: =_StatusKey.DemandeEnCours
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {\n                StatusKey:          MyNextStatus.StatusKey,  \n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            },\n            frmGeneralInfo_F.Updates\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    //MyNbDemandes :      Value(CountRows(MyDemandeSPW));\n                    MySpw :             vcDemande.SPW,\n                    MyListeEmploiHtml :  \"<li>\" & vcDemande.'Numéro d''emploi' & \"</li>\",\n                    MyNumEmploi :       vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : distribution list\n                        MyRecipients,\n                        // Subject: notification métier                   \n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Nouvelle(s) demande(s) envoyée(s) (\" & MySpw & \")\",   \n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p> \" \n                                &    \"<p><i>[\" & MyTypeDemande & \"]: </i></p>\n                                <p>La demande suivante a été transmise via <b>\" & _AppName & \"</b></p>\"\n                            & \"<p><strong>\" & MySpw &\"</strong></p>\n                                <ul>\"\n                                & MyListeEmploiHtml\n                                &\"</ul>\" \n            \n                        & _txtMessage.EmailFooter \n                    );\n                )\n               \n            ),\n        \n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
+                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_SPList_Demandes,\n            vcDemande,\n            {\n                StatusKey:          MyNextStatus.StatusKey,  \n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            },\n            frmGeneralInfo_F.Updates\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_SPList_Demandes)),\n        Concurrent(\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    //MyNbDemandes :      Value(CountRows(MyDemandeSPW));\n                    MySpw :             vcDemande.SPW,\n                    MyListeEmploiHtml :  \"<li>\" & vcDemande.'Numéro d''emploi' & \"</li>\",\n                    MyNumEmploi :       vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : distribution list\n                        MyRecipients,\n                        // Subject: notification métier                   \n                        _txtMessage.EmailSubjectPrefix \n                            &   MyTypeDemande & \" : Nouvelle(s) demande(s) envoyée(s) (\" & MySpw & \")\",   \n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p> \" \n                                &    \"<p><i>[\" & MyTypeDemande & \"]: </i></p>\n                                <p>La demande suivante a été transmise via <b>\" & _AppName & \"</b></p>\"\n                            & \"<p><strong>\" & MySpw &\"</strong></p>\n                                <ul>\"\n                                & MyListeEmploiHtml\n                                &\"</ul>\" \n            \n                        & _txtMessage.EmailFooter \n                    );\n                )\n               \n            ),\n        \n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
                                     OnUnavailable: =Notify(_txtMessage.ActionUnsupported,NotificationType.Error,2000)
                                     SourceStatuses: =[""]
                                     SourceStatusesData: |-
@@ -4303,7 +4314,7 @@ Screens:
 
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   {
                                                       StatusKey:          MyNextStatus.StatusKey,   
@@ -4314,7 +4325,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               Concurrent(
                                                       With(
                                                       {
@@ -4409,7 +4420,7 @@ Screens:
 
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   {
                                                       StatusKey:          MyNextStatus.StatusKey,   
@@ -4420,7 +4431,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               Concurrent(
                                                       With(
                                                           {
@@ -4516,7 +4527,7 @@ Screens:
 
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   {
                                                       StatusKey:          MyNextStatus.StatusKey,   
@@ -4529,7 +4540,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               Concurrent(
                                                       With(
                                                       {
@@ -4622,7 +4633,7 @@ Screens:
 
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   {
                                                       StatusKey:          MyNextStatus.StatusKey,   
@@ -4635,7 +4646,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               Concurrent(
                                                       With(
                                                       {
@@ -4727,7 +4738,7 @@ Screens:
 
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   {CommentValidationCOSTRA:  frmNextStep_F.Updates.CommentValidationCOSTRA},
                                                   {
@@ -4738,7 +4749,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               Concurrent(
                                                   // # Notifie des changements de statut
                                                   With(
@@ -4822,7 +4833,7 @@ Screens:
                                     NextStatus: =_StatusKey.CandidPVTermines
                                     NextStatusData: =LookUp(_StatutConfigTable,StatusKey = Self.NextStatus)
                                     OnAlreadyRunning: =Notify(_txtMessage.ActionUnsupported,NotificationType.Information,2000)
-                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_Demandes,\n            vcDemande,\n            {CODICandidatRetenu:  frmNextStep_F.Updates.CODICandidatRetenu},\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix & \" \" & MyTypeDemande & \": \"\n                            & \" Décision du CODI enregistrée\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\"\n                        & \"<p><i><u>Concerne : [\" & MyTypeDemande & \"]: </i></u></p>\"\n                        & \" <p>La décision du CODI est enregistrée pour l'emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b> ( <b>\" & vcDemande.SPW & \"</b>).</p>\"\n                        & \"<p><u>Candidat retenu : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CODICandidatRetenu.DisplayName & \" (Ulis :  \"& drpCODICandRetenu_F.Selected.MailNickname  &\")</i></p>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
+                                    OnAvailable: "=// ## Logique métier de changement de statut\nWith(\n    // Défini via un With le prochain statut et le cas échéant l'actuel afin de rendre la suite du code générique\n    { \n        MyNextStatus :  Self.NextStatusData // Statut cible appliqué aux demandes après exécution\n    },\n\n    UpdateContext({vcDemande : \n        //# Applique le changement de statut à la demande traitée       \n        Patch(AIRH_SPList_Demandes,\n            vcDemande,\n            {CODICandidatRetenu:  frmNextStep_F.Updates.CODICandidatRetenu},\n            {\n                StatusKey:          MyNextStatus.StatusKey,\n                'Statut Detail':    MyNextStatus.StatutDetail,\n                'Statut General':   MyNextStatus.StatutGeneral\n            }\n        )\n    });\n\n    If(IsEmpty(Errors(AIRH_SPList_Demandes)),\n        Concurrent(\n            // # Notifie des changements de statut\n            With(\n                {\n                    MyTypeDemande :     vcDemande.'Type de demande'.Value,\n                    MySpw :             vcDemande.SPW,\n                    MyNumEmploi:        vcDemande.'Numéro d''emploi',\n                    MyRecipients :      _DACEmailList()\n                },\n                If(IsBlank(MyRecipients),\n                    // Aucune liste DFA configurée pour ce SPW ou pour la DAC\n                    Notify(_txtMessage.NoRecipient, NotificationType.Warning,5000),\n                    // Envoi standard\n                    Office365Outlook.SendEmailV2(\n                        // To  : DFA distribution list\n                        MyRecipients,    \n                        // Subject: notification métier\n                        _txtMessage.EmailSubjectPrefix & \" \" & MyTypeDemande & \": \"\n                            & \" Décision du CODI enregistrée\" & \" (\" & MyNumEmploi & \")\",\n                        // Body: informations détaillées\n                        \"<p>Bonjour,</p>\"\n                        & \"<p><i><u>Concerne : [\" & MyTypeDemande & \"]: </i></u></p>\"\n                        & \" <p>La décision du CODI est enregistrée pour l'emploi <b>\" & vcDemande.'Numéro d''emploi' & \"</b> ( <b>\" & vcDemande.SPW & \"</b>).</p>\"\n                        & \"<p><u>Candidat retenu : </u> <br>\" \n                        & \"<i>\" &  vcDemande.CODICandidatRetenu.DisplayName & \" (Ulis :  \"& drpCODICandRetenu_F.Selected.MailNickname  &\")</i></p>\" \n                        & _txtMessage.EmailFooter \n                    )\n                )\n            ),\n            // # Trace chaque changement de statut dans l'historique\n            fxLogStatusHistory(\n                ShowColumns(vcDemande,ID,'Numéro d''emploi'),\n                MyNextStatus.StatusKey,\n                vvUserRole.Key\n            )\n        );\n        ResetForm(frmGeneralInfo_F);\n        Navigate(Screen_Main_M);\n        \n        ,\n        Notify(_txtMessage.UpdateFailled,NotificationType.Error,5000)\n    );\n);\n\n\n"
                                     OnUnavailable: |
                                       =Notify(_txtMessage.ActionUnsupported ,NotificationType.Warning ,2000);
                                     SourceStatuses: =[""]
@@ -4872,7 +4883,7 @@ Screens:
 
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   {
                                                       CommentPromGW:  frmNextStep_F.Updates.CommentPromGW
@@ -4885,7 +4896,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               Concurrent(
                                                   // # Notifie des changements de statut
                                                   With(
@@ -4893,7 +4904,12 @@ Screens:
                                                           MyTypeDemande :     vcDemande.'Type de demande'.Value,
                                                           MySpw :             vcDemande.SPW,
                                                           MyNumEmploi:        vcDemande.'Numéro d''emploi',
-                                                          MyRecipients :      _DFAEmailList(vcDemande.SPW)
+                                                          MyListeEmploiHtml :  "<li>" & vcDemande.'Numéro d''emploi' & "</li>",
+                                                          MyRecipients :      _DFAEmailList(vcDemande.SPW),
+                                                          MyAgent : {
+                                                              DisplayName : vcDemande.CODICandidatRetenu.DisplayName, 
+                                                              Ulis : 'Utilisateursd’Office365'.UserProfile(vcDemande.CODICandidatRetenu.Email).MailNickname
+                                                          }
                                                       },
                                                       If(IsBlank(MyRecipients),
                                                           // Aucune liste DFA configurée pour ce SPW ou pour la DAC
@@ -4903,15 +4919,20 @@ Screens:
                                                               // To  : DFA distribution list
                                                               MyRecipients,    
                                                               // Subject: notification métier
-                                                              _txtMessage.EmailSubjectPrefix 
+                                                              _txtMessage.EmailSubjectPrefix & _Emoji.Refus & " "
                                                                   &   MyTypeDemande & " : Proposition de désignation refusée par GW" & " (" & MyNumEmploi & ")",
                                                               // Body: informations détaillées
-                                                              "<p>Bonjour,</p>
-                                                              <p>Dans le cadre de la <i>" & MyTypeDemande & "</i>, La proposition de désignation de l'agent  ("& vcDemande.CODICandidatRetenu.DisplayName &") a été refusée par le GW via <b>" & _AppName & "</b> " &
-                                                              "pour le <b>" & vcDemande.SPW & "</b> (emploi <b>" & vcDemande.'Numéro d''emploi' & "</b>)."
-                                                              & "<br><u>Motif : </u> <br>" 
-                                                              & "<i>" &  vcDemande.CommentPromGW & "</i>" 
-                                                              & "<p> La notification de refus GW a été annexée à la demande"
+                                                              "<p>Bonjour,</p>"
+                                                              & "<p><i>[" & MyTypeDemande & "] </i></p>
+                                                              <p>" & _Emoji.Refus & " La proposition de désignation de l'agent "& MyAgent.DisplayName &" (Ulis: "& MyAgent.Ulis & ") a été refusée par le GW via <b>" & _AppName & "</b> "
+                                                              & "pour l'emploi suivant: </p>" 
+                                                              & "<p><strong>" & MySpw & "</strong></p>
+                                                               <ul>"
+                                                                  & MyListeEmploiHtml
+                                                                  & "</ul>" 
+                                                              & "<p><u>Motif : </u> </p>" 
+                                                              & "<p><i>" &  vcDemande.CommentPromGW & "</i></p>" 
+                                                              & "<p> La notification de refus GW a été annexée à la demande</p>"
                                                               & _txtMessage.EmailFooter 
                                                           )
                                                       )
@@ -4982,7 +5003,7 @@ Screens:
 
                                           UpdateContext({vcDemande : 
                                               //# Applique le changement de statut à la demande traitée       
-                                              Patch(AIRH_Demandes,
+                                              Patch(AIRH_SPList_Demandes,
                                                   vcDemande,
                                                   {
                                                       CommentPromGW:  Blank()
@@ -4995,7 +5016,7 @@ Screens:
                                               )
                                           });
 
-                                          If(IsEmpty(Errors(AIRH_Demandes)),
+                                          If(IsEmpty(Errors(AIRH_SPList_Demandes)),
                                               Concurrent(
                                                   // # Notifie des changements de statut
                                                   With(
@@ -5003,7 +5024,12 @@ Screens:
                                                           MyTypeDemande :     vcDemande.'Type de demande'.Value,
                                                           MySpw :             vcDemande.SPW,
                                                           MyNumEmploi:        vcDemande.'Numéro d''emploi',
-                                                          MyRecipients :      _DFAEmailList(vcDemande.SPW)
+                                                          MyListeEmploiHtml :  "<li>" & vcDemande.'Numéro d''emploi' & "</li>",
+                                                          MyRecipients :      _DFAEmailList(vcDemande.SPW),
+                                                                              MyAgent : {
+                                                              DisplayName : vcDemande.CODICandidatRetenu.DisplayName, 
+                                                              Ulis : 'Utilisateursd’Office365'.UserProfile(vcDemande.CODICandidatRetenu.Email).MailNickname
+                                                          }
                                                       },
                                                       If(IsBlank(MyRecipients),
                                                           // Aucune liste DFA configurée pour ce SPW ou pour la DAC
@@ -5013,15 +5039,18 @@ Screens:
                                                               // To  : DFA distribution list
                                                               MyRecipients,    
                                                               // Subject: notification métier
-                                                              _txtMessage.EmailSubjectPrefix 
+                                                              _txtMessage.EmailSubjectPrefix & _Emoji.Approuve & " "
                                                                   &   MyTypeDemande & " : Proposition de désignation approuvée par GW" & " (" & MyNumEmploi & ")",
                                                               // Body: informations détaillées
-                                                              "<p>Bonjour,</p>
-                                                              <p>Dans le cadre de la <i>" & MyTypeDemande & "</i>, la proposition de désignation de l'agent ("& vcDemande.CODICandidatRetenu.DisplayName &") a été ✅approuvée par le GW via <b>" & _AppName & "</b> " &
-                                                              "pour le <b>" & vcDemande.SPW & "</b> (emploi <b>" & vcDemande.'Numéro d''emploi' & "</b>)."
-                                                              & "<p>📌 Action requise : L'arrêté signé par l'autorité et l'accusé de réception à destination de l'agent se trouvent sur l'application. Merci de faire parvenir à l'agent un exemplaire de chaque document et de nous transmettre l'accusé de réception signé.</p>
-                                                              <p>D'avance merci.</p>
-                                                              <p>Bonne journée</p>"
+                                                              "<p>Bonjour,</p>"
+                                                              & "<p><i>[" & MyTypeDemande & "]</i></p>
+                                                              <p>" & _Emoji.Approuve &  "La proposition de désignation de l'agent "& MyAgent.DisplayName &" (Ulis: "& MyAgent.Ulis & ") a été approuvée par le GW via <b>" & _AppName & "</b> " 
+                                                              & "pour l'emploi suivant: </p>" 
+                                                              & "<p><strong>" & MySpw & "</strong></p>
+                                                               <ul>"
+                                                                  & MyListeEmploiHtml
+                                                                  & "</ul>" 
+                                                              & "<p>📌 Action requise : L'arrêté signé par l'autorité et l'accusé de réception à destination de l'agent se trouvent sur l'application. Merci de faire parvenir à l'agent un exemplaire de chaque document et de nous transmettre l'accusé de réception signé.</p>"
                                                               & _txtMessage.EmailFooter 
                                                           )
                                                       )
@@ -5110,7 +5139,7 @@ Screens:
                                 "Aucun document associé à cette demande"
                                 )
                                 */
-                              Visible: =!galDocumentsLies_F.Visible
+                              Visible: =!galDocumentsLies_F.Visible && !vcDocIsLoading
                               Width: =galDocumentsLies_F.Width
                         - galDocumentsLies_F:
                             Control: Gallery@2.15.0
@@ -5120,7 +5149,7 @@ Screens:
                               LayoutMinHeight: =16
                               LayoutMinWidth: =16
                               TemplateSize: =82
-                              Visible: '=Self.AllItemsCount > 0 '
+                              Visible: =Self.AllItemsCount > 0 && !vcDocIsLoading
                             Children:
                               - imgDocumentMiniature_F:
                                   Control: Image@2.2.3
@@ -5227,6 +5256,21 @@ Screens:
                                     Text: =ThisItem.CategorieDocument.Value
                                     Width: =Len(Self.Text)*8
                                     X: =Parent.TemplateWidth - Self.Width
+                        - Spinner1_2:
+                            Control: ModernSpinner@1.1.0
+                            Properties:
+                              FillPortions: =1
+                              Height: =200
+                              Label: |-
+                                ="Chargement des 
+                                documents liés"
+                              LabelPosition: =SpinnerLabelPosition.Below
+                              PaddingLeft: =30
+                              PaddingRight: =30
+                              Visible: '=vcDocIsLoading '
+                              Width: '=300 '
+                              X: =(Parent.Width - Self.Width)/2
+                              Y: =(Parent.Height - Self.Height) / 2
                         - galCategorieDocument_F:
                             Control: Gallery@2.15.0
                             Variant: BrowseLayout_Vertical_OneTextVariant_ver5.0
@@ -5254,7 +5298,8 @@ Screens:
                                               vcBatchMode:            false,
                                               vcAddDocContext :       _ActionOnForm.AddDoc,
                                               vcDemande:              vcDemande,
-                                              vcCategorieDocument :   ThisItem.Value
+                                              vcCategorieDocument :   ThisItem.Value,
+                                              vcTypeDemande :         vcDemande.'Type de demande'.Value
                                           }
                                       );
 
@@ -5383,7 +5428,7 @@ Screens:
                         OnSelect: |+
                           =IfError(
                           // Suppression de la demande en status brouillon 
-                             Remove(AIRH_Demandes, vcDemande),
+                             Remove(AIRH_SPList_Demandes, vcDemande),
                              // [TODO] Avant de supprimer la demande, retirer sa référence du champ DemandesLiees de tous les documents liés afin d'éviter les liens documentaires orphelins
                               Notify("Erreur : suppression impossible.", NotificationType.Error);
                               UpdateContext({ vcShowDeleteConfirm: false });

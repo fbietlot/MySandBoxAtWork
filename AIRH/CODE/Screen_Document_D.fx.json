@@ -89,23 +89,118 @@ Screens:
                         Width: =250
                       Children:
                         - btnAddDocument_D:
-                            Control: Button@0.0.45
+                            Control: ModernButton@1.0.0
                             Properties:
+                              Align: =Align.Center
+                              FontWeight: =""
                               Height: =46
-                              OnSelect: =//This is a FAKE button only for UI. The real action to add file is done in the attachment control
+                              OnSelect: |+
+                                =//This is a FAKE button only for UI. The real action to add file is done in the attachment control
+
+
+
+                                If(vvDebug,
+                                    Notify("[FORCED]Préparation de l'upload du fichier",NotificationType.Information,2000);
+                                    Trace("[FORCED]Préparation de l'upload du fichier",TraceSeverity.Information);
+
+                                    UpdateContext({
+                                        vcShowFileFromLibrary:false,
+                                        vcSelectedDoc: Blank()
+                                    });
+
+                                    With(
+                                        {
+                                            MyAttachment : First(atchAddDocument_D.Attachments),
+                                            MyFileNameWithTimeStamp:
+                                                With(
+                                                    {
+                                                        MyExtension: Last(Split(First(atchAddDocument_D.Attachments).Name, ".")).Value,
+                                                        MyTimestamp: Text(Now(),"yyyymmddhhmmss")
+                                                    },
+                                                    Substitute(
+                                                        First(atchAddDocument_D.Attachments).Name,
+                                                        "." & MyExtension,
+                                                        "_" & MyTimestamp & "." & MyExtension
+                                                    )
+                                                )        
+                                        }, // Remark : The functionality will only allow to add one file
+                                        UpdateContext({
+                                            vcFileUploaded : 
+                                                AIRH_Upload_Files_ToSP.Run(
+                                                    MyFileNameWithTimeStamp, 
+                                                    vcCategorieDocument,
+                                                    If(!vcBatchMode, 
+                                                        // Link one 'Document' to  single 'Demande'
+                                                        JSON([{DemandeId : Value(vcDemande.ID)}]), // As the folw can handle multiple 'Demandes' we use a Json Table
+                                                        //Else Batch mode - link one 'Document' to  to multiple 'Demandes'
+                                                        JSON(RenameColumns( vcTblIdDemande,ID,DemandeId))
+                                                    ),
+                                                    If(vvUserRole.Key = _Acteur.DAC.Key, ""  , vvUserSPW),
+                                                    vcDemande.'Type de demande'.Value,
+                                                    {                  
+                                                        file: {
+                                                            contentBytes:   MyAttachment.Value,
+                                                            name:           MyFileNameWithTimeStamp
+                                                        }
+                                                    }
+
+                                                )
+                                        })
+                                    );
+
+                                    // Check the upload results
+                                    If(
+                                        !IsBlank(vcFileUploaded),
+                                        Notify("Votre document est enregistré !",NotificationType.Success,2000);
+                                        Reset(atchAddDocument_D);
+                                        Switch(vcAddDocContext,
+                                            _ActionOnList.AddDoc , 
+                                                Navigate(Screen_Main_M),
+                                            _ActionOnForm.AddDoc , 
+                                                Navigate(Screen_Form_F),
+                                            _ActionOnList.GWDecision , 
+                                                Navigate(Screen_Main_M , Transition.None , 
+                                                    {vcWizardStep: 4 }
+                                                ),
+                                            _ActionOnList.CODIDecision , 
+                                                Navigate(Screen_Main_M , Transition.None , 
+                                                    {vcWizardStep: 
+                                                        Switch(vcCategorieDocument,
+                                                            _DocumentCategory.PVProvisoire,  numCODIDecisionAddDoc_M.Value + 1 ,
+                                                            _DocumentCategory.PVDefinitif,  numCODIDecisionAddDoc_M_1.Value + 1
+                                                        )
+                                                    }
+                                                )
+                                        );
+
+
+                                        ,//Else
+                                        Notify("Désolé, impossible d'enregistrer votre document. Réessayez...",NotificationType.Error,2000)
+                                    );
+                                );
+
+
+                              PaddingBottom: =5
+                              PaddingLeft: =12
+                              PaddingRight: =12
+                              PaddingTop: =5
+                              RadiusBottomLeft: =4
+                              RadiusBottomRight: =4
+                              RadiusTopLeft: =4
+                              RadiusTopRight: =4
                               Text: |-
                                 ="📎Ajouter un nouveau document"
+                              VerticalAlign: =VerticalAlign.Middle
                               Width: =242
-                              Y: =atchAddDocument_D.Y + 37 //atchAddDocument_D.Y + 37
+                              Y: =If(vvDebug,120, atchAddDocument_D.Y + 37) //atchAddDocument_D.Y + 37
                         - atchAddDocument_D:
                             Control: Attachments@2.3.0
                             Properties:
                               AddAttachmentText: =Mid( btnAddDocument_D.Text,3)
                               BorderColor: =Parent.BorderColor
                               BorderStyle: =BorderStyle.None
-                              Color: =RGBA(0, 0, 0, 0)
-                              DisplayMode: =Parent.DisplayMode
-                              Fill: =RGBA(0, 0, 0, 0)
+                              Color: =If(vvDebug,Color.Black, RGBA(0, 0, 0, 0))
+                              Fill: =If(vvDebug,Color.Orange,RGBA(0, 0, 0, 0))
                               FontWeight: =FontWeight.Semibold
                               Height: =120
                               HoverColor: =RGBA(255, 255, 255, 1)
@@ -116,7 +211,12 @@ Screens:
                               MaxAttachments: =1
                               NoAttachmentsText: =""
                               OnAddFile: |+
-                                =UpdateContext({
+                                =Trace("Préparation de l'upload du fichier",TraceSeverity.Information);
+                                If(vvDebug,
+                                    Notify("Préparation de l'upload du fichier",NotificationType.Information,2000)
+                                );
+
+                                UpdateContext({
                                     vcShowFileFromLibrary:false,
                                     vcSelectedDoc: Blank()
                                 });
@@ -149,7 +249,7 @@ Screens:
                                                     JSON(RenameColumns( vcTblIdDemande,ID,DemandeId))
                                                 ),
                                                 If(vvUserRole.Key = _Acteur.DAC.Key, ""  , vvUserSPW),
-                                                vcDemande.'Type de demande'.Value,
+                                                Coalesce(vcTypeDemande,""),
                                                 {                  
                                                     file: {
                                                         contentBytes:   MyAttachment.Value,
@@ -200,18 +300,29 @@ Screens:
                               Size: =11
                               Tooltip: =
                               Width: =242
-                              Y: =btnShowLinkedDocument_D.Y +15
+                              Y: =If(vvDebug,0, btnShowLinkedDocument_D.Y +15)
                         - btnShowLinkedDocument_D:
-                            Control: Button@0.0.45
+                            Control: ModernButton@1.0.0
                             Properties:
-                              Appearance: =If(vcShowFileFromLibrary,    'ButtonCanvas.Appearance'.Secondary,'ButtonCanvas.Appearance'.Primary)
+                              Align: =Align.Center
+                              Appearance: =If(vcShowFileFromLibrary,    ButtonAppearance.Secondary,ButtonAppearance.Primary)
+                              FontWeight: =""
                               Height: =46
                               OnSelect: |
                                 =UpdateContext({
                                     vcShowFileFromLibrary:true,
                                     vcSelectedDoc: Blank()
                                 });
+                              PaddingBottom: =5
+                              PaddingLeft: =12
+                              PaddingRight: =12
+                              PaddingTop: =5
+                              RadiusBottomLeft: =4
+                              RadiusBottomRight: =4
+                              RadiusTopLeft: =4
+                              RadiusTopRight: =4
                               Text: "=\"\U0001F517 Lier un document existant\" "
+                              VerticalAlign: =VerticalAlign.Middle
                               Width: =242
                               Y: =Parent.Height / 2 -Self.Height * 2
                         - btnBack_D:
@@ -245,7 +356,7 @@ Screens:
                               VerticalAlign: =VerticalAlign.Middle
                               Width: =btnShowLinkedDocument_D.Width
                               X: =btnShowLinkedDocument_D.X
-                              Y: =btnAddDocument_D.Y + btnAddDocument_D.Height + 10
+                              Y: =If(vvDebug,500, btnAddDocument_D.Y + btnAddDocument_D.Height + 10)
                   - ctnDocumentList_D:
                       Control: GroupContainer@1.5.0
                       Variant: ManualLayout
